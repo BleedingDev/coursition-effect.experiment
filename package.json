@@ -4,14 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev:server": "bun --watch src/server.ts",
+    "start:server": "bun src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@effect/language-service": "^0.9.2",
     "@effect/platform": "^0.80.20",
+    "@effect/platform-bun": "^0.61.10",
     "effect": "^3.14.20"
   },
   "packageManager": "pnpm@10.7.0",

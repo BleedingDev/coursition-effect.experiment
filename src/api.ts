@@ -1,63 +1,22 @@
-import { Schema } from "effect";
-import {
-	HttpApi,
-	HttpApiEndpoint,
-	HttpApiGroup,
-	HttpApiSchema,
-	Multipart,
-} from "@effect/platform";
+import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "@effect/platform";
+import { MediaResponse, UnifiedMediaRequest } from "./media-schema";
+import { idParam } from "./schema";
+import { MediaEmpty, MediaNotFound } from "./media-error";
+import { JobResponse, JobsResponse } from "./jobs-schema";
 
-// Schemas for requests that include file uploads
-const ParseMediaRequest = HttpApiSchema.Multipart(
-	Schema.Struct({
-		file: Multipart.FilesSchema,
-		language: Schema.String,
-	}),
-);
+const parseMedia = HttpApiEndpoint.post("parseMedia", "/parse")
+	.setPayload(UnifiedMediaRequest)
+	.addSuccess(MediaResponse);
+const jobs = HttpApiEndpoint.get("getJobs", "/jobs").addSuccess(JobsResponse);
+const job = HttpApiEndpoint.get("getJob")`/job/${idParam}/result`
+	.addSuccess(JobResponse)
+	.addError(MediaNotFound, { status: 404 })
+	.addError(MediaEmpty, { status: 422 });
 
-const ParseDocumentRequest = HttpApiSchema.Multipart(
-	Schema.Struct({
-		file: Multipart.FilesSchema,
-		description: Schema.String,
-		language: Schema.String,
-	}),
-);
+const parseGroup = HttpApiGroup.make("media")
+	.add(parseMedia)
+	.add(jobs)
+	.add(job)
+	.prefix("/media");
 
-// Schemas for regular JSON body requests
-const ParsePublicMediaRequest = Schema.Struct({
-	url: Schema.String,
-	language: Schema.String,
-});
-
-const ParseWebRequest = Schema.Struct({
-	url: Schema.String,
-});
-
-const SuccessResponse = Schema.Struct({
-	message: Schema.String,
-});
-
-// API Definition
-export const api = HttpApi.make("ParserAPI").add(
-	HttpApiGroup.make("Parser")
-		.add(
-			HttpApiEndpoint.post("parseMedia", "/parse/media")
-				.setPayload(ParseMediaRequest) // Corrected: Using setPayload
-				.addSuccess(SuccessResponse),
-		)
-		.add(
-			HttpApiEndpoint.post("parsePublicMedia", "/parse/public-media")
-				.setPayload(ParsePublicMediaRequest) // Corrected: Using setPayload
-				.addSuccess(SuccessResponse),
-		)
-		.add(
-			HttpApiEndpoint.post("parseWeb", "/parse/web")
-				.setPayload(ParseWebRequest) // Corrected: Using setPayload
-				.addSuccess(SuccessResponse),
-		)
-		.add(
-			HttpApiEndpoint.post("parseDocument", "/parse/document")
-				.setPayload(ParseDocumentRequest) // Corrected: Using setPayload
-				.addSuccess(SuccessResponse),
-		),
-);
+export const api = HttpApi.make("v1Api").add(parseGroup);
