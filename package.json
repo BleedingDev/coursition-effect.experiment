@@ -9,5 +9,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.7.0"
+  "dependencies": {
+    "@effect/language-service": "^0.9.2",
+    "@effect/platform": "^0.80.20",
+    "effect": "^3.14.20"
+  },
+  "packageManager": "pnpm@10.7.0",
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
 }
