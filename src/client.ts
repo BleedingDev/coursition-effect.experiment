@@ -4,7 +4,7 @@ import { api } from "./api";
 
 export const apiClient = Effect.gen(function* () {
 	const client = yield* HttpApiClient.make(api, {
-		baseUrl: "http://localhost:3000",
+		baseUrl: "http://localhost:3001",
 	});
 
 	return client;

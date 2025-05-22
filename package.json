@@ -12,7 +12,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@effect/experimental": "^0.44.20",
     "@effect/language-service": "^0.9.2",
+    "@effect/opentelemetry": "^0.46.17",
     "@effect/platform": "^0.80.20",
     "@effect/platform-bun": "^0.61.10",
     "effect": "^3.14.20"
