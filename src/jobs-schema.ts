@@ -15,3 +15,8 @@ export const JobsResponse = Schema.Struct({
 		}),
 	),
 });
+
+export const JobResultResponse = Schema.Struct({
+	id: Schema.Number,
+	result: Schema.String,
+});

@@ -29,6 +29,12 @@ const mediaGroupMock = HttpApiBuilder.group(api, "media", (handlers) =>
 				name: "job",
 				status: "in-progress",
 			}),
+		)
+		.handle("getJobResult", ({ path: { id } }) =>
+			Effect.succeed({
+				id,
+				result: "result",
+			}),
 		),
 );
 
