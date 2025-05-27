@@ -6,7 +6,8 @@
   "scripts": {
     "dev:server": "bun --watch src/server.ts",
     "start:server": "bun src/server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check": "biome check --write ."
   },
   "keywords": [],
   "author": "",
