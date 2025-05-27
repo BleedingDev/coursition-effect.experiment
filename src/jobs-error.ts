@@ -1,6 +1,6 @@
-import { Schema } from "effect"
+import { Schema } from 'effect'
 
 export class JobResultNotFound extends Schema.TaggedError<JobResultNotFound>()(
-	"JobResultNotFound",
-	{},
+  'JobResultNotFound',
+  {},
 ) {}
