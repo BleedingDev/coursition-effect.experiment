@@ -1,15 +1,20 @@
 {
   "name": "coursition-experiment",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Media parsing service with Effect-TS architecture",
+  "main": "src/server.ts",
+  "type": "module",
   "scripts": {
     "dev:server": "bun --watch src/server.ts",
     "start:server": "bun src/server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "check": "biome check --write ."
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "check": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
   },
-  "keywords": [],
+  "keywords": ["effect-ts", "media-parsing", "subtitles", "typescript"],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -18,12 +23,15 @@
     "@effect/opentelemetry": "^0.48.8",
     "@effect/platform": "^0.82.8",
     "@effect/platform-bun": "^0.65.5",
-    "effect": "^3.15.4"
+    "effect": "^3.16.0"
   },
   "packageManager": "pnpm@10.7.0",
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@effect/vitest": "^0.23.0",
+    "@vitest/ui": "^3.1.4",
     "typescript": "^5.8.3",
-    "ultracite": "4.2.5"
+    "ultracite": "4.2.5",
+    "vitest": "^3.1.4"
   }
 }

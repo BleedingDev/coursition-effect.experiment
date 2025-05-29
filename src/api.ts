@@ -1,9 +1,16 @@
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from '@effect/platform'
-import { JobResultNotFound } from './jobs-error'
-import { JobResponse, JobResultResponse, JobsResponse } from './jobs-schema'
-import { MediaEmpty, MediaNotFound } from './media-error'
-import { MediaResponse, UnifiedMediaRequest } from './media-schema'
-import { idParam } from './schema'
+import { idParam } from './domain/common/schema.js'
+import { JobNotFound, JobResultNotFound } from './domain/jobs/jobs.errors.js'
+import {
+  JobResponse,
+  JobResultResponse,
+  JobsResponse,
+} from './domain/jobs/jobs.schema.js'
+import { MediaEmpty } from './domain/media/media.errors.js'
+import {
+  MediaResponse,
+  UnifiedMediaRequest,
+} from './domain/media/media.schema.js'
 
 const parseMedia = HttpApiEndpoint.post('parseMedia', '/parse')
   .setPayload(UnifiedMediaRequest)
@@ -11,7 +18,7 @@ const parseMedia = HttpApiEndpoint.post('parseMedia', '/parse')
 const jobs = HttpApiEndpoint.get('getJobs', '/jobs').addSuccess(JobsResponse)
 const job = HttpApiEndpoint.get('getJob')`/job/${idParam}`
   .addSuccess(JobResponse)
-  .addError(MediaNotFound, { status: 404 })
+  .addError(JobNotFound, { status: 404 })
 const jobResult = HttpApiEndpoint.get('getJobResult')`/job/${idParam}/result`
   .addSuccess(JobResultResponse)
   .addError(JobResultNotFound, { status: 404 })
