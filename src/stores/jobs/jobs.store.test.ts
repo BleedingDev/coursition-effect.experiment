@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@effect/vitest'
-import { Effect as E, Exit } from 'effect'
+import { Effect as E, Exit, Cause } from 'effect'
 import { MockConfigLayer } from '../../config.js'
 import { JobResultNotFoundError } from '../../domain/jobs/jobs.errors.js'
 import { JobsStore } from './jobs.store.js'
@@ -37,8 +37,12 @@ describe('JobsStore', () => {
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {
-          const cause = result.cause
-          expect(cause._tag).toBe('JobNotFoundError')
+          const failure = Cause.failureOption(result.cause)
+          if (failure._tag === 'Some') {
+            expect(failure.value._tag).toBe('JobNotFoundError')
+          } else {
+            throw new Error('Expected a failure but got none')
+          }
         }
       }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
     )
@@ -79,8 +83,12 @@ describe('JobsStore', () => {
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {
-          const cause = result.cause
-          expect(cause._tag).toBe('JobResultNotFoundError')
+          const failure = Cause.failureOption(result.cause)
+          if (failure._tag === 'Some') {
+            expect(failure.value._tag).toBe('JobResultNotFoundError')
+          } else {
+            throw new Error('Expected a failure but got none')
+          }
         }
       }).pipe(
         E.provide(
@@ -91,7 +99,7 @@ describe('JobsStore', () => {
                 name: `Job ${id}`,
                 status: 'in-progress',
               }),
-            getJobResult: (jobId) => new JobResultNotFoundError({ jobId }),
+            getJobResult: (jobId) => E.fail(new JobResultNotFoundError({ jobId })),
           }),
         ),
         E.provide(MockConfigLayer),

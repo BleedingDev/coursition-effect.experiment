@@ -17,7 +17,21 @@ describe('parseMediaUsecase', () => {
       expect(result.json[0]?.text).toBe('Hello world')
       expect(result.json[1]?.start).toBe(5000)
       expect(result.json[2]?.end).toBe(15000)
-    }).pipe(E.provide(MediaStore.Default), E.provide(MockConfigLayer)),
+    }).pipe(
+      E.provide(
+        MediaStore.makeTestService({
+          parseMedia: () =>
+            E.succeed({
+              json: [
+                { start: 0, end: 5000, text: 'Hello world' },
+                { start: 5000, end: 10000, text: 'This is a test' },
+                { start: 10000, end: 15000, text: 'Subtitle parsing complete' },
+              ],
+            }),
+        }),
+      ),
+      E.provide(MockConfigLayer),
+    ),
   )
 
   it.effect('should work with custom test service', () =>

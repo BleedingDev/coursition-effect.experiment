@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@effect/vitest'
-import { Effect as E, Exit } from 'effect'
+import { Effect as E, Exit, Cause } from 'effect'
 import { MockConfigLayer } from '../../config.js'
 import { JobsStore } from '../../stores/jobs/jobs.store.js'
 import { getJobByIdUsecase } from './get-job-by-id.usecase.js'
@@ -21,8 +21,12 @@ describe('getJobByIdUsecase', () => {
 
       expect(Exit.isFailure(result)).toBe(true)
       if (Exit.isFailure(result)) {
-        const cause = result.cause
-        expect(cause._tag).toBe('JobNotFoundError')
+        const failure = Cause.failureOption(result.cause)
+        if (failure._tag === 'Some') {
+          expect(failure.value._tag).toBe('JobNotFoundError')
+        } else {
+          throw new Error('Expected a failure but got none')
+        }
       }
     }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
   )

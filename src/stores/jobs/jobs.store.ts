@@ -34,7 +34,7 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
         E.gen(function* () {
           // Mock implementation - replace with real database lookup
           if (id === 999) {
-            return yield* new JobNotFoundError({ id })
+            return yield* E.fail(new JobNotFoundError({ id }))
           }
 
           return JobResponse.make({
@@ -55,7 +55,7 @@ export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
 
           // Check if job has results
           if (job.status !== 'completed') {
-            return yield* new JobResultNotFoundError({ jobId })
+            return yield* E.fail(new JobResultNotFoundError({ jobId }))
           }
 
           return JobResultResponse.make({
