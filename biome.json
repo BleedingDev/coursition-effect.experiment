@@ -2,7 +2,12 @@
   "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
   "extends": ["ultracite"],
   "files": {
-    "ignore": ["**/node_modules/**/*", "**/migrations/**/*", "**/.next/**/*"]
+    "ignore": [
+      "**/node_modules/**/*",
+      "**/migrations/**/*",
+      "**/.next/**/*",
+      ".vscode/README.md"
+    ]
   },
   "vcs": {
     "enabled": true,

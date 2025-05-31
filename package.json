@@ -5,7 +5,7 @@
   "main": "src/server.ts",
   "type": "module",
   "scripts": {
-    "dev:server": "bun --watch src/server.ts",
+    "dev:server": "bun --inspect-wait --watch src/server.ts",
     "start:server": "bun src/server.ts",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -1,0 +1,21 @@
+{
+  "recommendations": [
+    "biomejs.biome",
+    "ms-vscode.vscode-typescript-next",
+    "vitest.explorer",
+    "oven.bun-vscode",
+    "github.copilot",
+    "github.copilot-chat",
+    "p42ai.refactor",
+    "aaron-bond.better-comments",
+    "vivaxy.vscode-conventional-commits",
+    "effectful-tech.effect-vscode",
+    "usernamehw.errorlens",
+    "antfu.pnpm-catalog-lens"
+  ],
+  "unwantedRecommendations": [
+    "esbenp.prettier-vscode",
+    "orta.vscode-jest",
+    "ms-vscode.js-debug"
+  ]
+}

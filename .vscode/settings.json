@@ -1,0 +1,70 @@
+{
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.tsdk": "node_modules/typescript/lib",
+
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+  "editor.suggest.localityBonus": true,
+  "editor.gotoLocation.multipleDefinitions": "goto",
+  "editor.gotoLocation.multipleTypeDefinitions": "goto",
+  "editor.largeFileOptimizations": true,
+  "emmet.showExpandedAbbreviation": "never",
+
+  "editor.defaultFormatter": "biomejs.biome",
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+
+  "biome.lsp.trace.server": "verbose",
+
+  "files.associations": {
+    "*.ts": "typescript",
+    "*.test.ts": "typescript"
+  },
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/*.d.ts": true,
+    "**/pnpm-lock.yaml": true,
+    "**/tsconfig.tsbuildinfo": true
+  },
+
+  "files.exclude": {
+    "**/tsconfig.tsbuildinfo": true
+  },
+
+  "npm.packageManager": "pnpm",
+
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+
+  "tailwindCSS.experimental.classRegex": [
+    ["([\"'`][^\"'`]*.*?[\"'`])", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ]
+}
