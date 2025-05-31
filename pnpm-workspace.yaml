@@ -1,2 +1,28 @@
 onlyBuiltDependencies:
   - msgpackr-extract
+
+# Dependency catalogs for better organization and version management
+catalogs:
+  # Effect-TS ecosystem packages - runtime dependencies
+  effect:
+    "@effect/experimental": ^0.48.3
+    "@effect/language-service": ^0.17.1
+    "@effect/opentelemetry": ^0.50.3
+    "@effect/platform": ^0.84.3
+    "@effect/platform-bun": ^0.67.3
+    "effect": ^3.16.2
+
+  # Testing framework and utilities
+  test:
+    "@effect/vitest": ^0.23.2
+    "@vitest/ui": ^3.1.4
+    "vitest": ^3.1.4
+
+  # Linting and formatting tools
+  lint:
+    "ultracite": 4.2.5
+    "@biomejs/biome": 1.9.4
+
+  # Build tools and TypeScript compiler
+  build:
+    "typescript": ^5.8.3

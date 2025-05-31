@@ -18,20 +18,20 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@effect/experimental": "^0.46.8",
-    "@effect/language-service": "^0.17.1",
-    "@effect/opentelemetry": "^0.48.8",
-    "@effect/platform": "^0.82.8",
-    "@effect/platform-bun": "^0.65.5",
-    "effect": "^3.16.0"
+    "@effect/experimental": "catalog:effect",
+    "@effect/language-service": "catalog:effect",
+    "@effect/opentelemetry": "catalog:effect",
+    "@effect/platform": "catalog:effect",
+    "@effect/platform-bun": "catalog:effect",
+    "effect": "catalog:effect"
   },
   "packageManager": "pnpm@10.7.0",
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
-    "@effect/vitest": "^0.23.0",
-    "@vitest/ui": "^3.1.4",
-    "typescript": "^5.8.3",
-    "ultracite": "4.2.5",
-    "vitest": "^3.1.4"
+    "@biomejs/biome": "catalog:lint",
+    "@effect/vitest": "catalog:test",
+    "@vitest/ui": "catalog:test",
+    "typescript": "catalog:build",
+    "ultracite": "catalog:lint",
+    "vitest": "catalog:test"
   }
 }
