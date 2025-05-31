@@ -14,7 +14,12 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc"
   },
-  "keywords": ["effect-ts", "media-parsing", "subtitles", "typescript"],
+  "keywords": [
+    "effect-ts",
+    "media-parsing",
+    "subtitles",
+    "typescript"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -30,7 +35,7 @@
     "@biomejs/biome": "catalog:lint",
     "@effect/vitest": "catalog:test",
     "@vitest/ui": "catalog:test",
-    "typescript": "catalog:build",
+    "typescript": "catalog:types",
     "ultracite": "catalog:lint",
     "vitest": "catalog:test"
   }

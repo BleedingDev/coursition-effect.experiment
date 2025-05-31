@@ -23,6 +23,6 @@ catalogs:
     "ultracite": 4.2.5
     "@biomejs/biome": 1.9.4
 
-  # Build tools and TypeScript compiler
-  build:
+  # Types and TypeScript compiler
+  types:
     "typescript": ^5.8.3
