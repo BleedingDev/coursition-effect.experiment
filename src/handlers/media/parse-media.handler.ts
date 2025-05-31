@@ -11,10 +11,7 @@ export const parseMediaHandler = (request: UnifiedMediaRequestType) =>
     const result = yield* parseMediaUsecase(request)
     return result
   }).pipe(
-    E.catchTags({
-      // Map internal errors to API errors
-      MediaParsingError: () => new MediaEmpty(),
-    }),
+    E.catchAll(() => new MediaEmpty()),
     E.tapError(E.logError),
     E.withSpan('parseMediaHandler', {
       attributes: {

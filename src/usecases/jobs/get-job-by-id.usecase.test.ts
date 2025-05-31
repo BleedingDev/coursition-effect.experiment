@@ -1,8 +1,8 @@
 import { describe, expect, it } from '@effect/vitest'
-import { Effect as E, Exit, Cause } from 'effect'
+import { Effect as E, Exit } from 'effect'
 import { MockConfigLayer } from '../../config.js'
-import { JobNotFoundError } from '../../domain/jobs/jobs.errors.js'
 import { JobsStore } from '../../stores/jobs/jobs.store.js'
+import { getExitError } from '../../test-utils.js'
 import { getJobByIdUsecase } from './get-job-by-id.usecase.js'
 
 describe('getJobByIdUsecase', () => {
@@ -22,13 +22,8 @@ describe('getJobByIdUsecase', () => {
 
       expect(Exit.isFailure(result)).toBe(true)
       if (Exit.isFailure(result)) {
-        const currentCause = result.cause
-        if (currentCause._tag === "Fail") {
-          const failCause = currentCause as Cause.Fail<JobNotFoundError>
-          expect(failCause.error._tag).toBe('JobNotFoundError')
-        } else {
-          throw new Error('Expected cause to be a Fail type but got ' + currentCause._tag)
-        }
+        const error = getExitError(result)
+        expect(error?._tag).toBe('JobNotFoundError')
       }
     }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
   )

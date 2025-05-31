@@ -15,6 +15,7 @@ import {
 const parseMedia = HttpApiEndpoint.post('parseMedia', '/parse')
   .setPayload(UnifiedMediaRequest)
   .addSuccess(MediaResponse)
+  .addError(MediaEmpty, { status: 422 })
 const jobs = HttpApiEndpoint.get('getJobs', '/jobs').addSuccess(JobsResponse)
 const job = HttpApiEndpoint.get('getJob')`/job/${idParam}`
   .addSuccess(JobResponse)
@@ -22,7 +23,7 @@ const job = HttpApiEndpoint.get('getJob')`/job/${idParam}`
 const jobResult = HttpApiEndpoint.get('getJobResult')`/job/${idParam}/result`
   .addSuccess(JobResultResponse)
   .addError(JobResultNotFound, { status: 404 })
-  .addError(MediaEmpty, { status: 422 })
+  .addError(JobNotFound, { status: 404 })
 
 const parseGroup = HttpApiGroup.make('media')
   .add(parseMedia)

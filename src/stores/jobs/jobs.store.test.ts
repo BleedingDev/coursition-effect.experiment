@@ -1,7 +1,8 @@
 import { describe, expect, it } from '@effect/vitest'
-import { Effect as E, Exit, Cause } from 'effect'
+import { Effect as E, Exit } from 'effect'
 import { MockConfigLayer } from '../../config.js'
-import { JobNotFoundError, JobResultNotFoundError } from '../../domain/jobs/jobs.errors.js'
+import { JobResultNotFoundError } from '../../domain/jobs/jobs.errors.js'
+import { getExitError } from '../../test-utils.js'
 import { JobsStore } from './jobs.store.js'
 
 describe('JobsStore', () => {
@@ -37,12 +38,8 @@ describe('JobsStore', () => {
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {
-          const cause = result.cause
-          if (cause._tag === "Fail") {
-            expect((cause as Cause.Fail<JobNotFoundError>).error._tag).toBe('JobNotFoundError')
-          } else {
-            throw new Error('Expected cause to be a Fail type but got ' + cause._tag)
-          }
+          const error = getExitError(result)
+          expect(error?._tag).toBe('JobNotFoundError')
         }
       }).pipe(E.provide(JobsStore.Default), E.provide(MockConfigLayer)),
     )
@@ -83,12 +80,8 @@ describe('JobsStore', () => {
 
         expect(Exit.isFailure(result)).toBe(true)
         if (Exit.isFailure(result)) {
-          const cause = result.cause
-          if (cause._tag === "Fail") {
-            expect((cause as Cause.Fail<JobResultNotFoundError>).error._tag).toBe('JobResultNotFoundError')
-          } else {
-            throw new Error('Expected cause to be a Fail type but got ' + cause._tag)
-          }
+          const error = getExitError(result)
+          expect(error?._tag).toBe('JobResultNotFoundError')
         }
       }).pipe(
         E.provide(
@@ -99,7 +92,8 @@ describe('JobsStore', () => {
                 name: `Job ${id}`,
                 status: 'in-progress',
               }),
-            getJobResult: (jobId) => new JobResultNotFoundError({ jobId }),
+            getJobResult: (jobId) =>
+              E.fail(new JobResultNotFoundError({ jobId })),
           }),
         ),
         E.provide(MockConfigLayer),
