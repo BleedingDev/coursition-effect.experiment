@@ -1,14 +1,14 @@
 import { Effect as E, Layer } from 'effect'
-import { envVars } from '../../config.js'
+import { envVars } from '../../config'
 import {
   JobNotFoundError,
   JobResultNotFoundError,
-} from '../../domain/jobs/jobs.errors.js'
+} from '../../domain/jobs/jobs.errors'
 import {
   JobResponse,
   JobResultResponse,
   JobsResponse,
-} from '../../domain/jobs/jobs.schema.js'
+} from '../../domain/jobs/jobs.schema'
 
 export class JobsStore extends E.Service<JobsStore>()('JobsStore', {
   effect: E.gen(function* () {

@@ -1,5 +1,5 @@
 import { Effect as E } from 'effect'
-import { getJobsUsecase } from '../../usecases/jobs/get-jobs.usecase.js'
+import { getJobsUsecase } from '../../usecases/jobs/get-jobs.usecase'
 
 export const getJobsHandler = () =>
   E.gen(function* () {

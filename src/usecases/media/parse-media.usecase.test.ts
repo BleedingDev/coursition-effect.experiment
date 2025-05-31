@@ -1,8 +1,8 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E } from 'effect'
-import { MockConfigLayer } from '../../config.js'
-import { MediaStore } from '../../stores/media/media.store.js'
-import { parseMediaUsecase } from './parse-media.usecase.js'
+import { MockConfigLayer } from '../../config'
+import { MediaStore } from '../../stores/media/media.store'
+import { parseMediaUsecase } from './parse-media.usecase'
 
 describe('parseMediaUsecase', () => {
   it.effect('should parse media from URL', () =>

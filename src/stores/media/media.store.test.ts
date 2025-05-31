@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E } from 'effect'
-import { MockConfigLayer } from '../../config.js'
-import { MediaStore } from './media.store.js'
+import { MockConfigLayer } from '../../config'
+import { MediaStore } from './media.store'
 
 describe('MediaStore', () => {
   describe('parseMedia', () => {

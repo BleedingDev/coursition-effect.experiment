@@ -1,9 +1,9 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E, Exit } from 'effect'
-import { MockConfigLayer } from '../../config.js'
-import { JobsStore } from '../../stores/jobs/jobs.store.js'
-import { getExitError } from '../../test-utils.js'
-import { getJobByIdUsecase } from './get-job-by-id.usecase.js'
+import { MockConfigLayer } from '../../config'
+import { JobsStore } from '../../stores/jobs/jobs.store'
+import { getExitError } from '../../test-utils'
+import { getJobByIdUsecase } from './get-job-by-id.usecase'
 
 describe('getJobByIdUsecase', () => {
   it.effect('should return job when found', () =>

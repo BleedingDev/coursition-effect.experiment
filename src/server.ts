@@ -9,14 +9,14 @@ import {
 import { BunHttpServer, BunRuntime } from '@effect/platform-bun'
 import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
 import { Effect, Layer } from 'effect'
-import { api } from './api.js'
-import { envVars } from './config.js'
-import { getJobByIdHandler } from './handlers/jobs/get-job-by-id.handler.js'
-import { getJobResultHandler } from './handlers/jobs/get-job-result.handler.js'
-import { getJobsHandler } from './handlers/jobs/get-jobs.handler.js'
-import { parseMediaHandler } from './handlers/media/parse-media.handler.js'
-import { JobsStore } from './stores/jobs/jobs.store.js'
-import { MediaStore } from './stores/media/media.store.js'
+import { api } from './api'
+import { envVars } from './config'
+import { getJobByIdHandler } from './handlers/jobs/get-job-by-id.handler'
+import { getJobResultHandler } from './handlers/jobs/get-job-result.handler'
+import { getJobsHandler } from './handlers/jobs/get-jobs.handler'
+import { parseMediaHandler } from './handlers/media/parse-media.handler'
+import { JobsStore } from './stores/jobs/jobs.store'
+import { MediaStore } from './stores/media/media.store'
 
 const mediaGroupImplementation = HttpApiBuilder.group(
   api,

@@ -1,16 +1,13 @@
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from '@effect/platform'
-import { idParam } from './domain/common/schema.js'
-import { JobNotFound, JobResultNotFound } from './domain/jobs/jobs.errors.js'
+import { idParam } from './domain/common/schema'
+import { JobNotFound, JobResultNotFound } from './domain/jobs/jobs.errors'
 import {
   JobResponse,
   JobResultResponse,
   JobsResponse,
-} from './domain/jobs/jobs.schema.js'
-import { MediaEmpty } from './domain/media/media.errors.js'
-import {
-  MediaResponse,
-  UnifiedMediaRequest,
-} from './domain/media/media.schema.js'
+} from './domain/jobs/jobs.schema'
+import { MediaEmpty } from './domain/media/media.errors'
+import { MediaResponse, UnifiedMediaRequest } from './domain/media/media.schema'
 
 const parseMedia = HttpApiEndpoint.post('parseMedia', '/parse')
   .setPayload(UnifiedMediaRequest)

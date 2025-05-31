@@ -1,5 +1,5 @@
 import { Effect as E } from 'effect'
-import { JobsStore } from '../../stores/jobs/jobs.store.js'
+import { JobsStore } from '../../stores/jobs/jobs.store'
 
 export const getJobByIdUsecase = (id: number) =>
   E.gen(function* () {

@@ -1,9 +1,9 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E, Exit } from 'effect'
-import { MockConfigLayer } from '../../config.js'
-import { JobResultNotFoundError } from '../../domain/jobs/jobs.errors.js'
-import { getExitError } from '../../test-utils.js'
-import { JobsStore } from './jobs.store.js'
+import { MockConfigLayer } from '../../config'
+import { JobResultNotFoundError } from '../../domain/jobs/jobs.errors'
+import { getExitError } from '../../test-utils'
+import { JobsStore } from './jobs.store'
 
 describe('JobsStore', () => {
   describe('getAllJobs', () => {

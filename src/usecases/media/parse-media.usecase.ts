@@ -1,6 +1,6 @@
 import { Effect as E, type Schema } from 'effect'
-import type { UnifiedMediaRequest } from '../../domain/media/media.schema.js'
-import { MediaStore } from '../../stores/media/media.store.js'
+import type { UnifiedMediaRequest } from '../../domain/media/media.schema'
+import { MediaStore } from '../../stores/media/media.store'
 
 type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>
 

@@ -1,10 +1,10 @@
 import { Effect as E, Layer, type Schema } from 'effect'
-import { envVars } from '../../config.js'
-import { MediaParsingError } from '../../domain/media/media.errors.js'
+import { envVars } from '../../config'
+import { MediaParsingError } from '../../domain/media/media.errors'
 import {
   MediaResponse,
   type UnifiedMediaRequest,
-} from '../../domain/media/media.schema.js'
+} from '../../domain/media/media.schema'
 
 type UnifiedMediaRequestType = Schema.Schema.Type<typeof UnifiedMediaRequest>
 

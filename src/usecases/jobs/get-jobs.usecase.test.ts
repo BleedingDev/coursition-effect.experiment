@@ -1,8 +1,8 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E } from 'effect'
-import { MockConfigLayer } from '../../config.js'
-import { JobsStore } from '../../stores/jobs/jobs.store.js'
-import { getJobsUsecase } from './get-jobs.usecase.js'
+import { MockConfigLayer } from '../../config'
+import { JobsStore } from '../../stores/jobs/jobs.store'
+import { getJobsUsecase } from './get-jobs.usecase'
 
 describe('getJobsUsecase', () => {
   it.effect('should return jobs list', () =>
