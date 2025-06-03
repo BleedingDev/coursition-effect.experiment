@@ -9,12 +9,12 @@ This project follows Effect-TS service architecture patterns with clear separati
 ```
 src/
 ├── config.ts                 # Configuration management
-├── api.ts                    # API definition  
+├── api.ts                    # API definition
 ├── client.ts                 # API client
 ├── server.ts                 # Server setup
 ├── domain/                   # Domain models and schemas
 │   ├── jobs/                 # Job-related domain objects
-│   ├── media/                # Media parsing domain objects  
+│   ├── media/                # Media parsing domain objects
 │   └── common/               # Shared domain objects
 ├── stores/                   # Data access layer
 │   ├── jobs/                 # Job data operations
@@ -44,7 +44,7 @@ src/
   - Supports both file uploads and URL-based parsing
   - Returns subtitle data in structured JSON format
 
-### Job Management  
+### Job Management
 - `GET /media/jobs` - Get all parsing jobs
 - `GET /media/job/{id}` - Get specific job details
 - `GET /media/job/{id}/result` - Get job results (when completed)
@@ -57,7 +57,7 @@ src/
 
 ### Installation
 ```bash
-bun install
+pnpm install
 ```
 
 ### Development Server
@@ -89,7 +89,7 @@ bun run typecheck
 # Format only
 bun run format
 
-# Lint only  
+# Lint only
 bun run lint
 ```
 
