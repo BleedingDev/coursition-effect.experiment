@@ -5,22 +5,22 @@ onlyBuiltDependencies:
 catalogs:
   # Effect-TS ecosystem packages - runtime dependencies
   effect:
-    "@effect/experimental": ^0.48.3
-    "@effect/language-service": ^0.17.1
-    "@effect/opentelemetry": ^0.50.3
-    "@effect/platform": ^0.84.3
-    "@effect/platform-bun": ^0.67.3
-    "effect": ^3.16.2
+    "@effect/experimental": ^0.48.7
+    "@effect/language-service": ^0.19.0
+    "@effect/opentelemetry": ^0.50.6
+    "@effect/platform": ^0.84.6
+    "@effect/platform-bun": ^0.69.4
+    "effect": ^3.16.3
 
   # Testing framework and utilities
   test:
-    "@effect/vitest": ^0.23.2
-    "@vitest/ui": ^3.1.4
-    "vitest": ^3.1.4
+    "@effect/vitest": ^0.23.3
+    "@vitest/ui": ^3.2.2
+    "vitest": ^3.2.2
 
   # Linting and formatting tools
   lint:
-    "ultracite": 4.2.5
+    "ultracite": 4.2.8
     "@biomejs/biome": 1.9.4
 
   # Types and TypeScript compiler
