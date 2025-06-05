@@ -17,7 +17,7 @@ export class MediaStore extends E.Service<MediaStore>()('MediaStore', {
         E.gen(function* () {
           try {
             // Mock parsing logic - replace with actual implementation
-            // yield* E.sleep('100 millis') // Simulate processing time - Commented out for testing
+            yield* E.sleep('100 millis') // Simulate processing time - Commented out for testing
 
             return MediaResponse.make({
               json: [
