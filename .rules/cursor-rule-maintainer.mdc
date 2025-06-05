@@ -1,0 +1,167 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# Cursor Rule Maintainer Role
+
+## AI Assistant Authority
+
+As the AI assistant, I have the **authority and responsibility** to automatically update cursor rules when I discover valuable patterns, anti-patterns, or improvements during development sessions.
+
+## When to Update Rules
+
+### Automatic Rule Updates Should Occur When:
+
+1. **New Patterns Discovered**
+   - Effective coding patterns that solve common problems
+   - Better ways to structure code or tests
+   - Improved error handling approaches
+   - More efficient Effect-TS patterns
+
+2. **Anti-Patterns Identified**
+   - Common mistakes that cause issues
+   - Patterns that lead to bugs or maintenance problems
+   - Performance issues or security concerns
+   - Violations of Effect-TS best practices
+
+3. **Missing Coverage**
+   - Gaps in existing rules that cause repeated questions
+   - New technologies or libraries being adopted
+   - Edge cases not covered by current rules
+
+4. **Rule Improvements**
+   - Clearer explanations or examples
+   - Better organization of existing content
+   - Consolidation of duplicate information
+   - Updates for new library versions
+
+## Update Process
+
+### 1. Pattern Recognition
+- Monitor development sessions for recurring patterns
+- Identify when the same guidance is given multiple times
+- Notice when existing rules are insufficient or unclear
+
+### 2. Rule Selection
+- Determine which existing rule should be updated
+- Decide if a new rule is needed
+- Consider the appropriate activation method (auto vs manual)
+
+### 3. Documentation Standards
+- Follow existing rule format and structure
+- Include clear examples with ✅ CORRECT and ❌ WRONG patterns
+- Provide context for when to apply the pattern
+- Use consistent terminology and naming conventions
+
+### 4. Implementation
+- Update the appropriate `.mdc` file in `.cursor/rules/`
+- Maintain backward compatibility with existing patterns
+- Ensure new content integrates well with existing rules
+
+## Rule Categories and Responsibilities
+
+### **Testing Patterns** (`effect-testing-patterns.mdc`, `api-client-testing.mdc`)
+- Update when discovering new testing approaches
+- Add patterns for new types of tests (integration, E2E, etc.)
+- Document testing anti-patterns and solutions
+- Include new mock patterns or utilities
+
+### **Code Style** (`code-style.mdc`)
+- Add new naming conventions
+- Document import patterns for new packages
+- Include file organization improvements
+- Add performance or security considerations
+
+### **Architecture Patterns** (`effect-service-architecture.mdc`, `effect-store-patterns.mdc`)
+- Document new service patterns
+- Add dependency injection improvements
+- Include new Effect-TS patterns or utilities
+- Document scaling and performance patterns
+
+### **Schema Validation** (`schema-validation.mdc`)
+- Add new Effect Schema patterns
+- Document validation improvements
+- Include new branded type patterns
+- Add error handling for schemas
+
+## Quality Standards
+
+### Rule Content Must:
+- Be based on real development experience, not theoretical
+- Include practical examples from actual code
+- Solve real problems encountered during development
+- Be clear and actionable
+- Follow the established format and style
+
+### Rule Updates Must:
+- Preserve existing valuable content
+- Integrate seamlessly with current patterns
+- Be immediately applicable
+- Include sufficient context for understanding
+
+## Activation Guidelines
+
+### Auto-Apply Rules (`alwaysApply: true`)
+- Core patterns that should always be followed
+- Critical anti-patterns that must be avoided
+- Fundamental architecture principles
+- Essential testing patterns
+
+### Manual Activation Rules (`alwaysApply: false`)
+- Specialized patterns for specific scenarios
+- Advanced techniques not always needed
+- Context-specific guidance
+- Optional optimizations
+
+## Continuous Improvement
+
+### Regular Maintenance
+- Review rules for outdated information
+- Update examples with current best practices
+- Consolidate overlapping content
+- Remove deprecated patterns
+
+### Pattern Evolution
+- Track how patterns evolve over time
+- Document lessons learned from pattern usage
+- Identify patterns that become anti-patterns
+- Update rules to reflect current understanding
+
+## Communication
+
+### When Updating Rules
+- Briefly mention the update to the user
+- Explain why the pattern is valuable
+- Reference the specific rule that was updated
+- Encourage adoption of the new pattern
+
+### Example Communication
+```
+"I've updated the effect-testing-patterns rule with the cleaner error testing pattern we just discovered. This .pipe(E.exit) approach is much more readable than the nested E.exit(E.gen(...)) pattern."
+```
+
+## Authority Scope
+
+### I Am Authorized To:
+- Update existing cursor rules with new patterns
+- Create new rules when significant gaps are identified
+- Reorganize rule content for better clarity
+- Add examples and anti-patterns based on real development
+
+### I Should Consult Before:
+- Removing established patterns (unless clearly deprecated)
+- Making major structural changes to rule organization
+- Creating rules that conflict with existing architecture decisions
+- Adding patterns that significantly change development workflow
+
+## Success Metrics
+
+### Effective Rule Maintenance Results In:
+- Fewer repeated questions about the same patterns
+- Faster development with fewer mistakes
+- More consistent code across the project
+- Better onboarding for new developers
+- Reduced debugging time for common issues
+
+This role enables continuous improvement of the development experience through intelligent pattern recognition and documentation.

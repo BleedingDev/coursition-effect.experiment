@@ -1,0 +1,180 @@
+---
+description: 
+globs: packages/*/src/**/*.ts,packages/*/package.json
+alwaysApply: false
+---
+# README Maintenance Rule
+
+## AI Assistant Authority
+
+As the AI assistant, I have the **authority and responsibility** to automatically update README files when I detect significant changes to package content that would make the documentation outdated or incomplete.
+
+## When to Update README Files
+
+### Automatic Updates Should Occur When:
+
+1. **New API Endpoints Added**
+   - New lambda handlers in blog-api
+   - New client methods in blog-api-client
+   - New public interfaces or services
+
+2. **API Changes**
+   - Method signatures changed
+   - New parameters added or removed
+   - Response types modified
+   - Error handling patterns updated
+
+3. **Architecture Changes**
+   - New stores, services, or usecases added
+   - Directory structure changes
+   - New dependencies or integrations
+   - Technology stack updates
+
+4. **Feature Additions**
+   - New functionality or capabilities
+   - New data models or schemas
+   - New configuration options
+   - New environment variables
+
+5. **Package Structure Changes**
+   - New exports in index.ts
+   - New modules or sub-packages
+   - Build or deployment changes
+   - Testing strategy updates
+
+## README Update Guidelines
+
+### For blog-api Package
+
+**Sections to Maintain:**
+- **API Endpoints**: Keep endpoint list current with actual handlers
+- **Data Models**: Update when BlogPost/BlogPostProfile schemas change
+- **Environment Variables**: Sync with config.ts changes
+- **Technology Stack**: Update when new dependencies added
+- **Architecture Overview**: Reflect actual directory structure
+
+**Update Triggers:**
+- New lambda handler added → Update API Endpoints section
+- New store/service created → Update Architecture Overview
+- New environment variable in config.ts → Update Environment Variables
+- New integration added → Update Key Integrations section
+
+### For blog-api-client Package
+
+**Sections to Maintain:**
+- **API Reference**: Keep method examples current with actual client
+- **Data Models**: Sync with domain types and response formats
+- **AI Tool Integration**: Update when toolkit changes
+- **Configuration**: Reflect actual config options
+- **Error Handling**: Update when new error types added
+
+**Update Triggers:**
+- New method in BlogPostService → Update API Reference
+- New AI tool added → Update AI Tool Integration
+- New error type in client → Update Error Handling
+- Configuration changes → Update Configuration section
+
+## Update Process
+
+### 1. Detection Phase
+- Monitor file changes in packages/*/src/**/*.ts
+- Check for new exports in index.ts files
+- Watch for package.json dependency changes
+- Track new environment variables in config files
+
+### 2. Analysis Phase
+- Determine if changes affect public API
+- Identify which README sections need updates
+- Check if examples are still valid
+- Verify configuration documentation
+
+### 3. Update Phase
+- Update affected sections with accurate information
+- Add new examples for new functionality
+- Remove outdated information
+- Ensure consistency with actual implementation
+
+### 4. Validation Phase
+- Verify all code examples are syntactically correct
+- Check that all mentioned files/exports exist
+- Ensure environment variables match config files
+- Validate that architecture descriptions are accurate
+
+## README Content Standards
+
+### Code Examples Must:
+- Use actual types and interfaces from the codebase
+- Include proper imports from correct packages
+- Show realistic usage patterns
+- Be syntactically correct TypeScript
+
+### Documentation Must:
+- Reflect actual implementation, not planned features
+- Use consistent terminology with the codebase
+- Include all required dependencies and setup
+- Provide working examples that can be copy-pasted
+
+### Architecture Descriptions Must:
+- Match actual directory structure
+- Describe real patterns used in the code
+- Include all major components and integrations
+- Explain actual data flow and dependencies
+
+## Specific Maintenance Patterns
+
+### API Endpoint Documentation
+```typescript
+// ✅ CORRECT - Matches actual handler
+- `GET /v1/blog/{id}` - Get blog post by ID (returns BlogPostProfile)
+
+// ❌ WRONG - Doesn't match implementation
+- `GET /v1/blog/{id}` - Get blog post by ID (returns BlogPost)
+```
+
+### Method Documentation
+```typescript
+// ✅ CORRECT - Matches actual method signature
+const post = yield* blogService.getById('blog-123')
+
+// ❌ WRONG - Method doesn't exist or signature is wrong
+const post = yield* blogService.findById({ id: 'blog-123' })
+```
+
+### Environment Variables
+```bash
+# ✅ CORRECT - Matches config.ts
+BLOG_SERVICE_URL=https://api.example.com
+BLOG_SERVICE_API_KEY=your-api-key
+
+# ❌ WRONG - Variable doesn't exist in config
+BLOG_API_ENDPOINT=https://api.example.com
+```
+
+## Communication
+
+### When Updating READMEs
+- Briefly mention the update to the user
+- Explain what changed and why the update was needed
+- Reference the specific files or features that triggered the update
+- Highlight any breaking changes or new capabilities
+
+### Example Communication
+```
+"I've updated the blog-api README to include the new updateBlogPost endpoint that now returns BlogPostProfile and updates Algolia. The API Reference section now accurately reflects the current implementation."
+```
+
+## Quality Assurance
+
+### Before Updating README:
+- Verify the change actually exists in the codebase
+- Check that examples use correct imports and types
+- Ensure all mentioned files and exports exist
+- Test that configuration examples are valid
+
+### After Updating README:
+- Scan for any inconsistencies with actual implementation
+- Verify all code examples are syntactically correct
+- Check that all links and references are valid
+- Ensure the documentation is helpful and accurate
+
+This rule ensures that README files remain accurate, helpful, and synchronized with the actual codebase, providing developers with reliable documentation they can trust.

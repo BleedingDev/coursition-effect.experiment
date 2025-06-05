@@ -1,0 +1,375 @@
+---
+description: 
+globs: **/stores/**/*.ts,**/*-store.ts,**/*.store.ts
+alwaysApply: false
+---
+# Effect-TS Store Implementation Patterns and Best Practices
+
+## Import Patterns
+
+### Always Use Relative Paths for Internal Imports
+- **CRITICAL**: Never use `src/` aliases for internal imports
+- Always use relative paths like `../schema/blog-schema.js`
+- Use package imports only for external dependencies
+- Store files follow pattern: `store-name.store.ts`
+
+```typescript
+// ✅ CORRECT - Relative paths for internal imports
+import { BlogSchema } from '../schema/blog-schema.js'
+import { ConfigService } from '../../config/config-service.js'
+
+// ✅ CORRECT - Package imports for external dependencies
+import { BlogPost, BlogPostId } from '@t6c/blog-domain'
+import { Effect as E, Context } from 'effect'
+
+// ❌ WRONG - Never use src/ aliases
+import { BlogSchema } from 'src/stores/blog/schema/blog-schema.js'
+```
+
+## Store Service Definition
+
+### Service Class Structure
+```typescript
+export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
+  dependencies: [DynamoDBDocument.layer({})],
+  effect: E.gen(function* () {
+    const dynamodb = yield* DynamoDBService
+    
+    return {
+      create: (blogPost: BlogPost) => E.gen(function* () {
+        // Implementation
+      }),
+      getById: (id: BlogPostId) => E.gen(function* () {
+        // Implementation  
+      }),
+    }
+  }),
+}) {
+  static makeTestService = (
+    mockImplementation: Partial<Omit<BlogStore, '_tag'>>,
+  ) =>
+    Layer.succeed(BlogStore, {
+      _tag: 'BlogStore',
+      create: () => E.die('Not implemented' as const),
+      getById: () => E.die('Not implemented' as const),
+      ...mockImplementation,
+    })
+}
+```
+
+## Configuration Management
+
+### Environment Variables in config.ts
+- **ALWAYS** store environment variables in `config.ts` using Effect's Config system
+- Use `Config.string()` for regular values and `Config.redacted()` for sensitive data
+- Provide mock configuration for testing
+
+```typescript
+// config.ts
+import { Config, ConfigProvider, Layer } from 'effect'
+
+export const envVars = {
+  BLOG_TABLE: Config.string('BLOG_TABLE'),
+  USER_SERVICE_URL: Config.string('USER_SERVICE_URL'),
+  USER_SERVICE_API_KEY: Config.redacted('USER_SERVICE_API_KEY'),
+  ALGOLIA_APP_ID: Config.string('ALGOLIA_APP_ID'),
+  ALGOLIA_SEARCH_API_KEY: Config.redacted('ALGOLIA_SEARCH_API_KEY'),
+  ALGOLIA_WRITE_API_KEY: Config.redacted('ALGOLIA_WRITE_API_KEY'),
+  OPENAI_API_KEY: Config.redacted('OPENAI_API_KEY'),
+  CONTENT_BUCKET: Config.string('CONTENT_BUCKET'),
+} as const
+
+const mockConfigProvider = ConfigProvider.fromJson({
+  BLOG_TABLE: 'blog-table-test',
+  USER_SERVICE_URL: 'http://localhost:3000',
+  USER_SERVICE_API_KEY: 'USER_SERVICE_API_KEY',
+  ALGOLIA_APP_ID: 'ALGOLIA_APP_ID',
+  ALGOLIA_SEARCH_API_KEY: 'ALGOLIA_SEARCH_API_KEY',
+  ALGOLIA_WRITE_API_KEY: 'ALGOLIA_WRITE_API_KEY',
+  OPENAI_API_KEY: 'OPENAI_API_KEY',
+  CONTENT_BUCKET: 'CONTENT_BUCKET',
+})
+
+export const MockConfigLayer = Layer.setConfigProvider(mockConfigProvider)
+```
+
+### Using Configuration in Stores
+```typescript
+export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
+  dependencies: [DynamoDBService],
+  effect: E.gen(function* () {
+    const dynamodb = yield* DynamoDBService
+    const tableName = yield* envVars.BLOG_TABLE
+    
+    return {
+      create: (blogPost: BlogPost) => E.gen(function* () {
+        const encoded = yield* S.encode(BlogSchema)(blogPost)
+        yield* dynamodb.put({
+          TableName: tableName,
+          Item: encoded,
+          ConditionExpression: 'attribute_not_exists(PK)',
+        })
+        return blogPost
+      }),
+    }
+  }),
+})
+```
+
+## Store Method Patterns
+
+### CRUD Operations
+```typescript
+// CREATE - Insert new record
+create: (blogPost: BlogPost) =>
+  E.gen(function* () {
+    yield* E.logInfo('Creating blog post', { id: blogPost.id })
+    
+    const encoded = yield* S.encode(BlogSchema)(blogPost)
+    const result = yield* dynamodb.put({
+      TableName,
+      Item: encoded,
+      ConditionExpression: 'attribute_not_exists(PK)',
+    }).pipe(
+      E.catchTag('ConditionalCheckFailedException', () =>
+        new ConflictError({ resource: 'BlogPost', id: blogPost.id })
+      )
+    )
+    
+    yield* E.logInfo('Blog post created successfully', { id: blogPost.id })
+    return blogPost
+  }).pipe(
+    E.withSpan('BlogStore.create', { attributes: { id: blogPost.id } })
+  ),
+
+// READ - Get by ID
+getById: (id: BlogPostId) =>
+  E.gen(function* () {
+    yield* E.logInfo('Getting blog post by ID', { id })
+    
+    const result = yield* dynamodb.get({
+      TableName,
+      Key: { PK: id, SK: 'PROFILE' },
+    })
+    
+    const item = yield* E.fromNullable(result.Item).pipe(
+      E.catchTag('NoSuchElementException', () =>
+        new NotFoundError({ resource: 'BlogPost', id })
+      )
+    )
+    
+    const decoded = yield* S.decodeUnknown(BlogSchema)(item)
+    
+    yield* E.logInfo('Blog post retrieved successfully', { id })
+    return decoded
+  }).pipe(
+    E.withSpan('BlogStore.getById', { attributes: { id } })
+  ),
+
+// UPDATE - Patch existing record
+updateAttributes: (id: BlogPostId, updates: Partial<BlogPost>) =>
+  E.gen(function* () {
+    yield* E.logInfo('Updating blog post attributes', { id, updates })
+    
+    const existing = yield* getById(id)
+    const updated = { ...existing, ...updates, updatedAt: new Date() }
+    const encoded = yield* S.encode(BlogSchema)(updated)
+    
+    yield* dynamodb.put({
+      TableName,
+      Item: encoded,
+    })
+    
+    yield* E.logInfo('Blog post updated successfully', { id })
+    return updated
+  }).pipe(
+    E.withSpan('BlogStore.updateAttributes', { attributes: { id } })
+  ),
+
+// DELETE - Remove record
+delete: (id: BlogPostId) =>
+  E.gen(function* () {
+    yield* E.logInfo('Deleting blog post', { id })
+    
+    yield* dynamodb.delete({
+      TableName,
+      Key: { PK: id, SK: 'PROFILE' },
+      ConditionExpression: 'attribute_exists(PK)',
+    }).pipe(
+      E.catchTag('ConditionalCheckFailedException', () =>
+        new NotFoundError({ resource: 'BlogPost', id })
+      )
+    )
+    
+    yield* E.logInfo('Blog post deleted successfully', { id })
+  }).pipe(
+    E.withSpan('BlogStore.delete', { attributes: { id } })
+  ),
+```
+
+### Query Operations
+```typescript
+// Query with GSI
+getByAuthor: (authorId: string) =>
+  E.gen(function* () {
+    yield* E.logInfo('Getting blog posts by author', { authorId })
+    
+    const result = yield* dynamodb.query({
+      TableName,
+      IndexName: 'GSI2',
+      KeyConditionExpression: 'GSI2PK = :authorId',
+      ExpressionAttributeValues: {
+        ':authorId': `AUTHOR#${authorId}`,
+      },
+    })
+    
+    const items = result.Items || []
+    const decoded = yield* E.forEach(items, S.decodeUnknown(BlogSchema))
+    
+    yield* E.logInfo('Blog posts retrieved by author', { 
+      authorId, 
+      count: decoded.length 
+    })
+    return decoded
+  }).pipe(
+    E.withSpan('BlogStore.getByAuthor', { attributes: { authorId } })
+  ),
+```
+
+### External Service Integration
+```typescript
+// Algolia integration
+searchForHits: (query: string, page: number, limit: number) =>
+  E.gen(function* () {
+    yield* E.logInfo('Searching Algolia for hits', { query, page, limit })
+    
+    const result = yield* algoliaClient.search({
+      indexName: 'blog_posts',
+      query,
+      hitsPerPage: limit,
+      page: page - 1, // Algolia is 0-indexed
+    })
+    
+    yield* E.logInfo('Algolia search completed', { 
+      query, 
+      hits: result.hits.length,
+      nbHits: result.nbHits 
+    })
+    
+    // Return raw Algolia response - let usecase handle pagination logic
+    return result
+  }).pipe(
+    E.withSpan('BlogStore.searchForHits', { 
+      attributes: { query, page, limit } 
+    })
+  ),
+```
+
+## Error Handling
+
+### Convert External Errors to Domain Errors
+```typescript
+// DynamoDB errors
+.pipe(
+  E.catchTag('ConditionalCheckFailedException', () =>
+    new ConflictError({ resource: 'BlogPost', id })
+  ),
+  E.catchTag('ResourceNotFoundException', () =>
+    new NotFoundError({ resource: 'Table', id: TableName })
+  )
+)
+
+// S3 errors
+.pipe(
+  E.catchTag('NoSuchKey', () =>
+    new NotFoundError({ resource: 'File', id: key })
+  )
+)
+```
+
+## Logging and Observability
+
+### Structured Logging
+```typescript
+// Log inputs
+yield* E.logInfo('Operation started', { 
+  operation: 'create',
+  input: JSON.stringify(input, null, 2) 
+})
+
+// Log intermediate steps
+yield* E.logInfo('DynamoDB operation completed', { 
+  tableName: TableName,
+  operation: 'put',
+  itemId: blogPost.id 
+})
+
+// Log outputs
+yield* E.logInfo('Operation completed successfully', { 
+  operation: 'create',
+  result: { id: blogPost.id, title: blogPost.title }
+})
+```
+
+### Spans for Tracing
+```typescript
+.pipe(
+  E.withSpan('BlogStore.methodName', { 
+    attributes: { 
+      id,
+      operation: 'create',
+      tableName: TableName 
+    } 
+  })
+)
+```
+
+## Testing Support
+
+### Test Service Implementation
+```typescript
+static makeTestService = (
+  mockImplementation: Partial<Omit<BlogStore, '_tag'>>,
+) =>
+  Layer.succeed(BlogStore, {
+    _tag: 'BlogStore',
+    // Default implementations that fail
+    create: () => E.die('Not implemented' as const),
+    getById: () => E.die('Not implemented' as const),
+    updateAttributes: () => E.die('Not implemented' as const),
+    delete: () => E.die('Not implemented' as const),
+    getByAuthor: () => E.die('Not implemented' as const),
+    searchForHits: () => E.die('Not implemented' as const),
+    // Override with provided implementations
+    ...mockImplementation,
+  })
+```
+
+### Test Usage
+```typescript
+const testStore = BlogStore.makeTestService({
+  create: () => E.succeed(mockBlogPost1),
+  getById: (id) => 
+    id === 'existing-id' 
+      ? E.succeed(mockBlogPost1)
+      : new NotFoundError({ resource: 'BlogPost', id }),
+})
+```
+
+## Store Responsibilities
+
+### ✅ What Stores Should Do
+- Data persistence and retrieval operations
+- Schema encoding/decoding between domain and storage formats
+- External service integration (DynamoDB, Algolia, S3, etc.)
+- Convert external errors to domain errors
+- Structured logging of data operations
+- Return raw data without business logic processing
+
+### ❌ What Stores Should NOT Do
+- Business logic or validation
+- Pagination calculations (return raw results)
+- Data transformation beyond encoding/decoding
+- Cross-store operations or orchestration
+- User-facing error messages
+- Authentication or authorization

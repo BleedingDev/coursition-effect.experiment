@@ -1,0 +1,712 @@
+---
+description: 
+globs: **/*.test.ts
+alwaysApply: false
+---
+# Effect-TS Testing Patterns and Best Practices
+
+## Test Framework Setup
+
+### Use @effect/vitest for Effect-TS Tests
+- Always use `@effect/vitest` for tests involving Effect-based code
+- Import test functions from `@effect/vitest`, not regular `vitest`
+- Use `describe`, `expect`, and `it` from `@effect/vitest`
+
+```typescript
+import { describe, expect, it } from '@effect/vitest'
+import { Effect as E, Exit } from 'effect'
+```
+
+### Import Patterns - ALWAYS Use Relative Paths
+- **CRITICAL**: Always use relative paths for internal imports, never `src/` aliases
+- Use relative paths like `../../stores/blog/blog.store.js`
+- Use package imports for external dependencies like `@t6c/blog-domain`
+- Store files follow pattern: `store-name.store.ts`
+
+```typescript
+// ✅ CORRECT - Relative paths for internal imports
+import { BlogStore } from '../../stores/blog/blog.store.js'
+import { SearchStore } from '../../stores/search/search.store.js'
+
+// ✅ CORRECT - Package imports for external dependencies
+import { BlogPost, mockBlogPost1 } from '@t6c/blog-domain'
+import { Effect as E } from 'effect'
+
+// ❌ WRONG - Never use src/ aliases in tests
+import { BlogStore } from 'src/stores/blog/blog.store.js'
+```
+
+## Reusable Utility Functions
+
+### Code Reusability Principles
+
+When you notice the same logic pattern repeated across multiple files, extract it into reusable utility functions. This applies to any domain, not just specific technologies.
+
+#### Common Patterns to Extract
+
+**Data Transformation Utilities**
+When the same data transformation logic appears in multiple places:
+
+```typescript
+// ✅ CORRECT: Extract reusable transformation utilities
+export const transformApiResponseToItems = (
+  response: ApiResponse,
+  additionalData: AdditionalData,
+): E.Effect<Item[], never, SomeStore> =>
+  E.gen(function* () => {
+    // Common transformation logic
+    const items = yield* processResponse(response)
+    const enrichedItems = yield* enrichWithAdditionalData(items, additionalData)
+    return enrichedItems
+  })
+
+// ❌ WRONG: Duplicating transformation logic in each usecase
+const items = yield* S.decodeUnknown(S.Array(ItemSchema))(response.data)
+const enrichedItems = yield* E.all(
+  items.map(item => enrichWithData(item, additionalData))
+)
+```
+
+**Pagination Utilities**
+When pagination logic is repeated across multiple endpoints:
+
+```typescript
+// ✅ CORRECT: Extract reusable pagination utility
+export const createPaginationFromResponse = (
+  response: { page?: number; total?: number; pages?: number },
+  items: Item[],
+  inputPage: number,
+  inputLimit: number,
+) => {
+  const currentPage = response.page ?? inputPage
+  const totalItems = response.total ?? 0
+  const totalPages = response.pages ?? 0
+  const hasNext = currentPage < totalPages - 1
+  const hasPrev = currentPage > 0 // Always use 0-based pagination
+
+  return PaginationSchema(Item).make({
+    items,
+    totalItems,
+    totalPages,
+    currentPage,
+    perPage: inputLimit,
+    hasNext,
+    hasPrev,
+  })
+}
+
+// ❌ WRONG: Duplicating pagination logic in each usecase
+const currentPage = result.page ?? input.page
+const totalItems = result.nbHits ?? 0
+const hasNext = currentPage < totalPages - 1
+const hasPrev = currentPage > 0
+```
+
+**Data Enrichment Patterns**
+When you need to fetch related data and combine it:
+
+```typescript
+// ✅ CORRECT: Extract reusable enrichment utility
+export const enrichItemsWithRelatedData = (
+  items: BaseItem[],
+): E.Effect<EnrichedItem[], never, RelatedDataStore> =>
+  E.gen(function* () {
+    const store = yield* RelatedDataStore
+    
+    // Extract unique IDs
+    const relatedIds = [...new Set(items.map(item => item.relatedId))]
+    
+    // Fetch all related data in parallel
+    const relatedData = yield* E.all(
+      relatedIds.map(id => 
+        store.getById(id).pipe(
+          E.map(data => [id, data] as const)
+        )
+      )
+    ).pipe(E.map(pairs => new Map(pairs)))
+    
+    // Combine items with related data
+    return yield* E.all(
+      items.map(item => combineItemWithRelatedData(item, relatedData.get(item.relatedId)))
+    )
+  })
+```
+
+#### When to Extract Utilities
+
+1. **Repetition**: Same logic appears in 3+ places
+2. **Complexity**: Logic is complex enough to benefit from centralization
+3. **Testing**: Utility can be tested independently
+4. **Maintainability**: Changes to logic would require updating multiple files
+
+#### Utility Function Guidelines
+
+1. **Pure Functions**: Prefer pure functions when possible
+2. **Effect-TS Integration**: Use Effect-TS patterns for async operations
+3. **Type Safety**: Ensure strong typing for inputs and outputs
+4. **Error Handling**: Use proper Effect error handling patterns
+5. **Documentation**: Document the utility's purpose and usage
+6. **Testing**: Create comprehensive tests for utilities
+
+#### Example: Algolia Data Processing Utilities
+
+```typescript
+// ✅ CORRECT: Reusable Algolia utilities
+export const decodeAlgoliaHitsWithAuthors = (
+  hits: unknown[],
+): E.Effect<BlogPostItem[], never, UserStore> => {
+  // Reusable logic for decoding and enriching Algolia data
+}
+
+export const createPaginationFromAlgolia = (
+  algoliaResult: AlgoliaResult,
+  items: BlogPostItem[],
+  inputPage: number,
+  inputLimit: number,
+) => {
+  // Reusable pagination logic for Algolia responses
+}
+
+// Usage in usecases
+const items = yield* decodeAlgoliaHitsWithAuthors(result.hits)
+const pagination = createPaginationFromAlgolia(result, items, input.page, input.limit)
+```
+
+This pattern applies to any repeated logic: database queries, API transformations, validation patterns, etc.
+
+## Effect-TS Error Handling Patterns
+
+### NEVER Use throw new Error - Always Use Tagged Errors
+
+**CRITICAL**: Never use `throw new Error()` in Effect-TS applications. Always create and use `Data.TaggedError` for proper error handling within the Effect system.
+
+#### Creating Tagged Errors
+
+```typescript
+// ✅ CORRECT - Define tagged errors using Data.TaggedError
+import { Data } from 'effect'
+
+export class NotFoundError extends Data.TaggedError('NotFoundError')<{
+  resource: string
+  id: string
+}> {}
+
+export class ValidationError extends Data.TaggedError('ValidationError')<{
+  message: string
+  field?: string
+}> {}
+
+export class UnauthorizedError extends Data.TaggedError('UnauthorizedError')<{
+  message: string
+  userId?: string
+}> {}
+
+// ❌ WRONG - Never throw regular JavaScript errors
+throw new Error('Resource not found')
+throw new Error('Validation failed')
+```
+
+#### Using Tagged Errors in Effect.gen
+
+```typescript
+// ✅ CORRECT - Use yield* new ErrorClass() in Effect.gen
+export const getUserById = (id: string): E.Effect<User, NotFoundError, UserStore> =>
+  E.gen(function* () {
+    const userStore = yield* UserStore
+    const user = yield* userStore.findById(id)
+    
+    if (!user) {
+      return yield* new NotFoundError({ resource: 'user', id })
+    }
+    
+    return user
+  })
+
+// ❌ WRONG - Never throw errors in Effect.gen
+export const getUserById = (id: string): E.Effect<User, never, UserStore> =>
+  E.gen(function* () {
+    const userStore = yield* UserStore
+    const user = yield* userStore.findById(id)
+    
+    if (!user) {
+      throw new Error(`User ${id} not found`) // This breaks Effect error handling!
+    }
+    
+    return user
+  })
+```
+
+#### Error Handling with Effect.catchAll and Match
+
+```typescript
+// ✅ CORRECT - Handle tagged errors with Effect.catchAll and Match
+import { Match } from 'effect'
+
+const handleUserOperation = (userId: string) =>
+  getUserById(userId).pipe(
+    E.catchAll((error) =>
+      Match.value(error).pipe(
+        Match.when({ _tag: 'NotFoundError' }, (err) =>
+          E.succeed({ success: false, message: `User ${err.id} not found` })
+        ),
+        Match.when({ _tag: 'UnauthorizedError' }, (err) =>
+          E.succeed({ success: false, message: 'Access denied' })
+        ),
+        Match.exhaustive
+        // or March.orElse((error) => error) to handle it differently
+      )
+    )
+  )
+
+// ❌ WRONG - Using try/catch breaks Effect error handling
+const handleUserOperation = async (userId: string) => {
+  try {
+    const user = await E.runPromise(getUserById(userId))
+    return { success: true, user }
+  } catch (error) {
+    // This won't catch Effect errors properly!
+    return { success: false, message: 'Something went wrong' }
+  }
+}
+```
+
+#### Error Boundaries and Conversion
+
+```typescript
+// ✅ CORRECT - Convert external errors to tagged errors
+export class ExternalApiError extends Data.TaggedError('ExternalApiError')<{
+  error: unknown
+  operation: string
+}> {}
+
+const callExternalApi = (url: string): E.Effect<ApiResponse, ExternalApiError> =>
+  E.tryPromise({
+    try: () => fetch(url).then(res => res.json()),
+    catch: (error) => new ExternalApiError({
+      error,
+      operation: 'fetch',
+    }),
+  })
+
+// ❌ WRONG - Letting external errors bubble up untyped
+const callExternalApi = (url: string): E.Effect<ApiResponse, unknown> =>
+  E.tryPromise(() => fetch(url).then(res => res.json()))
+```
+
+#### Testing Tagged Errors
+
+```typescript
+// ✅ CORRECT - Test tagged errors with proper Effect patterns
+it.effect('should handle not found error', () =>
+  E.gen(function* () {
+    const userStore = UserStore.makeTestService({
+      findById: () => E.succeed(undefined),
+    })
+    
+    const result = yield* getUserById('non-existent').pipe(
+      E.provide(userStore),
+      E.exit
+    )
+    
+    expect(Exit.isFailure(result)).toBe(true)
+    const error = getExitError(result)
+    expect(error?._tag).toBe('NotFoundError')
+    expect(error?.resource).toBe('user')
+    expect(error?.id).toBe('non-existent')
+  })
+)
+
+// ❌ WRONG - Testing with try/catch doesn't work with Effect errors
+it('should handle not found error', async () => {
+  try {
+    await E.runPromise(getUserById('non-existent'))
+    expect.fail('Should have thrown an error')
+  } catch (error) {
+    // This won't work as expected with Effect errors
+    expect(error.message).toContain('not found')
+  }
+})
+```
+
+#### Common Tagged Error Patterns
+
+```typescript
+// Resource not found
+export class NotFoundError extends Data.TaggedError('NotFoundError')<{
+  resource: string
+  id: string
+}> {}
+
+// Validation failures
+export class ValidationError extends Data.TaggedError('ValidationError')<{
+  message: string
+  field?: string
+  value?: unknown
+}> {}
+
+// Authorization issues
+export class UnauthorizedError extends Data.TaggedError('UnauthorizedError')<{
+  message: string
+  userId?: string
+  requiredRole?: string
+}> {}
+
+// External service failures
+export class ExternalServiceError extends Data.TaggedError('ExternalServiceError')<{
+  service: string
+  operation: string
+  error: unknown
+}> {}
+
+// Business logic violations
+export class BusinessRuleError extends Data.TaggedError('BusinessRuleError')<{
+  rule: string
+  message: string
+  context?: Record<string, unknown>
+}> {}
+```
+
+#### Error Logging and Observability
+
+```typescript
+// ✅ CORRECT - Log errors within Effect system
+const processUser = (userId: string) =>
+  getUserById(userId).pipe(
+    E.tapError((error) =>
+      E.logError('Failed to get user', {
+        userId,
+        error: error._tag,
+        details: error,
+      })
+    ),
+    E.catchAll((error) =>
+      Match.value(error).pipe(
+        Match.when({ _tag: 'NotFoundError' }, () =>
+          E.succeed(null)
+        ),
+        Match.orElse(() =>
+          E.fail(error) // Re-throw for upstream handling
+        )
+      )
+    )
+  )
+
+// ❌ WRONG - Using console.log breaks Effect logging
+const processUser = (userId: string) =>
+  getUserById(userId).pipe(
+    E.catchAll((error) => {
+      console.log('Error:', error) // Use Effect.log instead
+      return E.succeed(null)
+    })
+  )
+```
+
+### Key Principles
+
+1. **Never throw**: Use `yield* new ErrorClass()` instead of `throw new Error()`
+2. **Type errors**: All errors should be tagged with specific types
+3. **Handle explicitly**: Use `E.catchAll` with `Match` for error handling
+4. **Test properly**: Use `E.exit` and `getExitError` for testing errors
+5. **Log within Effect**: Use `E.log` instead of `console.log`
+6. **Convert boundaries**: Convert external errors to tagged errors at boundaries
+
+## Effect-TS Test Variants
+
+### it.effect - Standard Effect Tests
+- Use for tests that need TestContext (TestClock, etc.)
+- Automatically provides test environment with mocked time
+- Suppresses logging by default
+
+```typescript
+it.effect('should test with Effect context', () =>
+  E.gen(function* () {
+    const result = yield* someEffectOperation()
+    expect(result).toBe(expectedValue)
+  })
+)
+```
+
+### it.scoped - Resource Management Tests
+- Use for tests involving resources that need proper cleanup
+- Automatically manages Scope for resource lifecycle
+
+```typescript
+it.scoped('should manage resources properly', () =>
+  E.gen(function* () {
+    const resource = yield* acquireResource()
+    const result = yield* useResource(resource)
+    expect(result).toBe(expectedValue)
+    // Resource automatically cleaned up
+  })
+)
+```
+
+### it.live - Live Environment Tests
+- Use when you need real system time and live services
+- Enables logging by default
+
+```typescript
+it.live('should work with live environment', () =>
+  E.gen(function* () {
+    const now = yield* Clock.currentTimeMillis
+    yield* Effect.log('This will be displayed')
+    expect(now).toBeGreaterThan(0)
+  })
+)
+```
+
+## API Client Testing Patterns
+
+### HTTP Client Testing with FetchHttpClientTest
+- Use `FetchHttpClientTest` from `@t6c/lib-api` for mocking HTTP responses
+- Use `MockConfigLayer` for configuration
+- Use `ServiceName.DefaultWithoutDependencies` for service layer
+
+```typescript
+import { FetchHttpClientTest, getExitError } from '@t6c/lib-api'
+import { MockConfigLayer } from '../config.js'
+
+describe('BlogPostService', () => {
+  describe('getById', () => {
+    it.effect('should get blog post by ID', () =>
+      E.gen(function* () {
+        const service = yield* BlogPostService
+        const result = yield* service.getById(BlogPostId.make('test-id'))
+
+        expect(result).toEqual(mockBlogPost)
+      }).pipe(
+        E.provide(BlogPostService.DefaultWithoutDependencies),
+        E.provide(
+          FetchHttpClientTest(
+            new Response(JSON.stringify(mockBlogPost), { status: 200 }),
+          ),
+        ),
+        E.provide(MockConfigLayer),
+      ),
+    )
+  })
+})
+```
+
+### Mock Data Patterns
+- Use mock data from domain packages when available
+- Create reusable mock objects for complex data structures
+- Use proper branded type constructors
+
+```typescript
+// Use domain mock data
+import { mockBlogPost1 } from '@t6c/blog-domain'
+const mockBlogPost = mockBlogPost1
+
+// Create mock pagination responses
+const mockPaginatedBlogPosts = PaginationSchema(BlogPost).make({
+  items: [mockBlogPost],
+  totalItems: 1,
+  totalPages: 1,
+  currentPage: 1,
+  perPage: 10,
+  hasNext: false,
+  hasPrev: false,
+})
+
+// Use branded type constructors
+const mockTag = Tag.make('test')
+const mockCategory = BlogPostCategory.make({
+  name: CategoryName.make('Technology'),
+  slug: CategorySlug.make('technology'),
+})
+```
+
+### Variable Scoping in Tests
+- **CRITICAL**: Declare variables outside generator functions when used in FetchHttpClientTest
+- This prevents scoping issues where variables are not accessible
+
+```typescript
+// ✅ CORRECT - Variable declared outside generator
+it.effect('should update blog post', () => {
+  const updatedBlogPost = {
+    ...mockBlogPost,
+    title: Title.make('Updated Title'),
+  }
+  
+  return E.gen(function* () {
+    const service = yield* BlogPostService
+    const result = yield* service.updateAttributes(id, { title })
+    expect(result).toEqual(updatedBlogPost)
+  }).pipe(
+    E.provide(BlogPostService.DefaultWithoutDependencies),
+    E.provide(
+      FetchHttpClientTest(
+        new Response(JSON.stringify(updatedBlogPost), { status: 200 }),
+      ),
+    ),
+    E.provide(MockConfigLayer),
+  )
+})
+
+// ❌ WRONG - Variable declared inside generator, not accessible in FetchHttpClientTest
+it.effect('should update blog post', () =>
+  E.gen(function* () {
+    const updatedBlogPost = { /* ... */ } // Not accessible outside
+    // ...
+  }).pipe(
+    E.provide(
+      FetchHttpClientTest(
+        new Response(JSON.stringify(updatedBlogPost), { status: 200 }), // Error!
+      ),
+    ),
+  ),
+)
+```
+
+## Error Testing Patterns
+
+### Clean Error Testing with .pipe(E.exit)
+- **PREFERRED**: Use `.pipe(E.exit)` directly on service calls for cleaner error testing
+- Avoid nested `E.exit(E.gen(...))` patterns
+- Keep layer provision at the test level
+
+```typescript
+// ✅ CORRECT - Clean error testing pattern
+it.effect('should handle 404 errors', () =>
+  E.gen(function* () {
+    const service = yield* BlogPostService
+    const result = yield* service
+      .getById(BlogPostId.make('non-existent-id'))
+      .pipe(E.exit)
+
+    expect(Exit.isFailure(result)).toBe(true)
+    const error = getExitError(result)
+    expect(error?._tag).toBe('NotFoundError')
+  }).pipe(
+    E.provide(BlogPostService.DefaultWithoutDependencies),
+    E.provide(FetchHttpClientTest(new Response(null, { status: 404 }))),
+    E.provide(MockConfigLayer),
+  ),
+)
+
+// ❌ WRONG - Verbose nested pattern
+it.effect('should handle 404 errors', () =>
+  E.gen(function* () {
+    const result = yield* E.exit(
+      E.gen(function* () {
+        const service = yield* BlogPostService
+        yield* service.getById(BlogPostId.make('non-existent-id'))
+      }).pipe(
+        E.provide(BlogPostService.DefaultWithoutDependencies),
+        E.provide(FetchHttpClientTest(new Response(null, { status: 404 }))),
+        E.provide(MockConfigLayer),
+      ),
+    )
+    expect(Exit.isFailure(result)).toBe(true)
+  }),
+)
+```
+
+### Error Assertion Patterns
+- Use `Exit.isFailure(result)` to check for failures
+- Use `getExitError(result)` utility to extract error details
+- Check specific error tags for typed error handling
+
+```typescript
+// Check for failure
+expect(Exit.isFailure(result)).toBe(true)
+
+// Extract and check error details
+const error = getExitError(result)
+expect(error?._tag).toBe('NotFoundError')
+expect(error?.message).toContain('Blog post not found')
+```
+
+## Service Testing Patterns
+
+### Store Testing with Mock Layers
+```typescript
+describe('BlogStore', () => {
+  it.effect('should create a blog post', () =>
+    E.gen(function* () {
+      const blogStore = yield* BlogStore
+      const result = yield* blogStore.create(mockBlogPost1)
+      expect(result.title).toEqual(mockBlogPost1.title)
+    }).pipe(
+      E.provide(
+        BlogStore.makeTestService({
+          create: () => E.succeed(mockBlogPost1),
+          getById: () => E.succeed(mockBlogPost1),
+        })
+      )
+    )
+  )
+})
+```
+
+### Handler Testing Pattern
+```typescript
+it('should return proper response', async () => {
+  const event = lambdaEvent()
+  const testStore = SearchStore.makeTestService({
+    getCategories: () => E.succeed(mockAlgoliaResponse),
+  })
+
+  const result = await toLambdaHandler(
+    _handler.pipe(E.provide(testStore))
+  )(event, lambdaContext, () => undefined)
+
+  expect(result?.statusCode).toBe(200)
+  expect(JSON.parse(result?.body || '')).toEqual(expectedResponse)
+})
+```
+
+## Test Organization
+
+### Comprehensive Test Coverage
+- Test all public methods of services
+- Include both success and error scenarios
+- Test with default parameters when applicable
+- Test edge cases and validation
+
+```typescript
+describe('BlogPostService', () => {
+  describe('getAllTags', () => {
+    it.effect('should get all tags with params', () => /* ... */)
+    it.effect('should get all tags with default params', () => /* ... */)
+    it.effect('should handle server errors', () => /* ... */)
+  })
+})
+```
+
+### Mock Response Patterns
+- Use appropriate HTTP status codes (200, 201, 404, 500)
+- Match response structure to actual API responses
+- Use `null` body for void operations
+
+```typescript
+// Success responses
+new Response(JSON.stringify(mockData), { status: 200 })
+new Response(JSON.stringify(mockData), { status: 201 }) // Created
+
+// Error responses
+new Response(null, { status: 404 }) // Not Found
+new Response(null, { status: 500 }) // Server Error
+
+// Void operations
+new Response(null, { status: 200 }) // Success with no body
+```
+
+## Best Practices
+
+### Test Naming
+- Use descriptive test names that explain the scenario
+- Follow pattern: "should [action] [condition]"
+- Group related tests in describe blocks by method
+
+### Mock Data Management
+- Reuse mock data across tests when possible
+- Use domain package mock data when available
+- Create typed mock objects with proper constructors
+
+### Layer Management
+- Always provide required layers in correct order
+- Use `DefaultWithoutDependencies` for services
+- Provide `MockConfigLayer` for configuration
+- Provide `FetchHttpClientTest` for HTTP mocking

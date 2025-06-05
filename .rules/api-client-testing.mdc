@@ -1,0 +1,215 @@
+---
+description: 
+globs: **/*api-client.test.ts
+alwaysApply: false
+---
+# API Client Testing Patterns
+
+## Required Imports for API Client Tests
+
+```typescript
+import { describe, expect, it } from '@effect/vitest'
+import { FetchHttpClientTest, getExitError } from '@t6c/lib-api'
+import { Effect as E, Exit } from 'effect'
+import { MockConfigLayer } from '../config.js'
+```
+
+## Standard API Client Test Structure
+
+### Success Test Pattern
+```typescript
+it.effect('should [action description]', () =>
+  E.gen(function* () {
+    const service = yield* ServiceName
+    const result = yield* service.methodName(params)
+
+    expect(result).toEqual(expectedResult)
+  }).pipe(
+    E.provide(ServiceName.DefaultWithoutDependencies),
+    E.provide(
+      FetchHttpClientTest(
+        new Response(JSON.stringify(mockResponse), { status: 200 }),
+      ),
+    ),
+    E.provide(MockConfigLayer),
+  ),
+)
+```
+
+### Error Test Pattern (PREFERRED)
+```typescript
+it.effect('should handle [error type]', () =>
+  E.gen(function* () {
+    const service = yield* ServiceName
+    const result = yield* service
+      .methodName(params)
+      .pipe(E.exit)
+
+    expect(Exit.isFailure(result)).toBe(true)
+    const error = getExitError(result)
+    expect(error?._tag).toBe('ExpectedErrorType')
+  }).pipe(
+    E.provide(ServiceName.DefaultWithoutDependencies),
+    E.provide(FetchHttpClientTest(new Response(null, { status: 404 }))),
+    E.provide(MockConfigLayer),
+  ),
+)
+```
+
+## Variable Scoping Rules
+
+### CRITICAL: Variables Used in FetchHttpClientTest
+- **ALWAYS** declare variables outside the generator function if they're used in `FetchHttpClientTest`
+- This prevents scoping issues where variables are not accessible
+
+```typescript
+// ✅ CORRECT
+it.effect('should update resource', () => {
+  const updatedResource = { ...mockResource, field: 'new value' }
+  
+  return E.gen(function* () {
+    const service = yield* ServiceName
+    const result = yield* service.update(id, updates)
+    expect(result).toEqual(updatedResource)
+  }).pipe(
+    E.provide(ServiceName.DefaultWithoutDependencies),
+    E.provide(
+      FetchHttpClientTest(
+        new Response(JSON.stringify(updatedResource), { status: 200 }),
+      ),
+    ),
+    E.provide(MockConfigLayer),
+  )
+})
+
+// ❌ WRONG - Variable not accessible in FetchHttpClientTest
+it.effect('should update resource', () =>
+  E.gen(function* () {
+    const updatedResource = { /* ... */ } // Scoping issue!
+    // ...
+  }).pipe(
+    E.provide(
+      FetchHttpClientTest(
+        new Response(JSON.stringify(updatedResource), { status: 200 }), // Error!
+      ),
+    ),
+  ),
+)
+```
+
+## Mock Response Patterns
+
+### HTTP Status Codes
+```typescript
+// Success responses
+new Response(JSON.stringify(data), { status: 200 })  // GET success
+new Response(JSON.stringify(data), { status: 201 })  // POST created
+new Response(null, { status: 200 })                  // DELETE/PUT success
+
+// Error responses  
+new Response(null, { status: 404 })                  // Not found
+new Response(null, { status: 500 })                  // Server error
+new Response(null, { status: 400 })                  // Bad request
+```
+
+### Mock Data Creation
+```typescript
+// Use domain mock data when available
+import { mockBlogPost1 } from '@t6c/blog-domain'
+const mockBlogPost = mockBlogPost1
+
+// Create pagination responses
+const mockPaginatedResponse = PaginationSchema(ItemType).make({
+  items: [mockItem],
+  totalItems: 1,
+  totalPages: 1,
+  currentPage: 1,
+  perPage: 10,
+  hasNext: false,
+  hasPrev: false,
+})
+
+// Use branded type constructors
+const mockId = ItemId.make('test-id')
+const mockName = ItemName.make('Test Name')
+```
+
+## Test Organization
+
+### Comprehensive Coverage
+- Test all public service methods
+- Include success and error scenarios for each method
+- Test with default parameters when applicable
+- Test edge cases and validation
+
+```typescript
+describe('ServiceName', () => {
+  describe('methodName', () => {
+    it.effect('should succeed with valid input', () => /* ... */)
+    it.effect('should succeed with default params', () => /* ... */)
+    it.effect('should handle 404 errors', () => /* ... */)
+    it.effect('should handle server errors', () => /* ... */)
+  })
+})
+```
+
+### Layer Provision Order
+Always provide layers in this order:
+1. `ServiceName.DefaultWithoutDependencies`
+2. `FetchHttpClientTest(mockResponse)`
+3. `MockConfigLayer`
+
+## Error Testing Best Practices
+
+### Use Clean Exit Pattern
+- Use `.pipe(E.exit)` directly on service calls
+- Avoid nested `E.exit(E.gen(...))` patterns
+- Keep layer provision at test level
+
+### Error Assertions
+```typescript
+// Check for failure
+expect(Exit.isFailure(result)).toBe(true)
+
+// Extract error details
+const error = getExitError(result)
+expect(error?._tag).toBe('NotFoundError')
+expect(error?.message).toContain('expected text')
+```
+
+## Common Patterns
+
+### Testing Methods with Optional Parameters
+```typescript
+// Test with explicit parameters
+it.effect('should work with params', () =>
+  E.gen(function* () {
+    const service = yield* ServiceName
+    const result = yield* service.method({ page: 1, limit: 10 })
+    expect(result).toEqual(mockResponse)
+  }).pipe(/* layers */)
+)
+
+// Test with default parameters
+it.effect('should work with defaults', () =>
+  E.gen(function* () {
+    const service = yield* ServiceName
+    const result = yield* service.method() // No params
+    expect(result).toEqual(mockResponse)
+  }).pipe(/* layers */)
+)
+```
+
+### Testing Void Operations
+```typescript
+it.effect('should perform void operation', () =>
+  E.gen(function* () {
+    const service = yield* ServiceName
+    yield* service.voidMethod(params) // No return value expected
+  }).pipe(
+    E.provide(ServiceName.DefaultWithoutDependencies),
+    E.provide(FetchHttpClientTest(new Response(null, { status: 200 }))),
+    E.provide(MockConfigLayer),
+  ),
+)
+```

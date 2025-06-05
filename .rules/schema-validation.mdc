@@ -1,0 +1,89 @@
+---
+description: 
+globs: **/*.ts
+alwaysApply: false
+---
+# Effect Schema Validation Patterns
+
+Guidelines for using Effect's Schema system for data validation in the T6C project.
+
+## When This Rule Applies
+
+This rule is automatically applied to files that match these patterns:
+- `**/*.types.ts` - Type definition files
+- `**/schema/**/*.ts` - Schema directory files
+- `**/schemas/**/*.ts` - Schemas directory files  
+- `**/*-schema.ts` - Files ending with `-schema.ts`
+- `**/*-schemas.ts` - Files ending with `-schemas.ts`
+- `**/branded.ts` - Branded type definition files
+- `**/domain/**/*.ts` - Domain model files
+
+## Import Patterns
+
+### Standard Schema Import
+- Always use `Schema as S` for Effect Schema imports
+- Use relative paths for internal imports
+
+```typescript
+// ✅ CORRECT - Standard import pattern
+import { Schema as S } from 'effect'
+import { Data, Effect as E } from 'effect'
+
+// ✅ CORRECT - Relative imports for internal types
+import { BlogPostId } from '../../domain-common/branded.js'
+```
+
+## Branded Types
+
+### Basic Branded Types
+- Use `S.pipe` with `S.brand` to create type-branded primitives
+- Export both the schema and the type
+
+```typescript
+export const UserId = S.String.pipe(S.brand('UserId'))
+export type UserId = typeof UserId.Type
+
+export const BlogPostId = S.String.pipe(S.brand('BlogPostId'))
+export type BlogPostId = typeof BlogPostId.Type
+```
+
+## Error Types
+
+### Tagged Errors with Data.TaggedError
+- Use `Data.TaggedError` for domain-specific error types
+- Include relevant identifiers and context in error data
+
+```typescript
+export class NotFoundError extends Data.TaggedError('NotFoundError')<{
+  resource: string
+  id: string
+}> {}
+
+export class BlogPostLikeNotFoundError extends Data.TaggedError(
+  'BlogPostLikeNotFoundError',
+)<{
+  blogPostId: BlogPostId
+  userId: UserId
+}> {}
+```
+
+## Schema Testing
+
+### Use @effect/vitest for Schema Tests
+- Test schema validation with valid and invalid inputs
+- Use Effect-based test patterns
+
+```typescript
+import { describe, expect, it } from '@effect/vitest'
+import { Effect as E } from 'effect'
+
+describe('BlogPost schema', () => {
+  it.effect('should decode valid blog post', () =>
+    E.gen(function* () {
+      const input = { id: 'blog-1', title: 'Test Post' }
+      const result = yield* S.decodeUnknown(BlogPost)(input)
+      expect(result.id).toBe('blog-1')
+    })
+  )
+})
+```

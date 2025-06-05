@@ -1,0 +1,277 @@
+---
+description:
+globs: **/lambdas/**/handler.ts,**/*-handler.ts
+alwaysApply: false
+---
+# Effect-TS Lambda Handler Implementation Patterns and Best Practices
+
+## Import Patterns
+
+### Always Use Relative Paths for Internal Imports
+- **CRITICAL**: Never use `src/` aliases for internal imports
+- Always use relative paths like `../../stores/blog/blog.store.js`
+- Use package imports only for external dependencies
+- Store files follow pattern: `store-name.store.ts`
+
+```typescript
+// ✅ CORRECT - Relative paths for internal imports
+import { BlogStore } from '../../stores/blog/blog.store.js'
+import { getBlogByIdUsecase } from './usecase.js'
+
+// ✅ CORRECT - Package imports for external dependencies
+import { BlogPostId } from '@t6c/domain-common'
+import { okResponse, toHandler } from '@t6c/lib-api'
+import { Effect as E } from 'effect'
+
+// ❌ WRONG - Never use src/ aliases
+import { BlogStore } from 'src/stores/blog/blog.store.js'
+```
+
+## Usecase Co-location Pattern
+
+### Usecases Must Be Co-located with Handlers
+- **MANDATORY**: Place usecases in the same directory as their handlers
+- **MANDATORY**: Place usecase tests in the same directory as the usecase
+- This ensures clear ownership and easier maintenance
+
+```
+src/lambdas/
+├── get-blog-by-id/
+│   ├── handler.ts
+│   ├── handler.test.ts
+│   ├── get-blog-by-id.usecase.ts
+│   └── get-blog-by-id.usecase.test.ts
+└── create-blog-post/
+    ├── handler.ts
+    ├── handler.test.ts
+    ├── create-blog-post.usecase.ts
+    └── create-blog-post.usecase.test.ts
+```
+
+### Usecase Import Pattern
+```typescript
+// ✅ CORRECT - Co-located usecase import
+import { getBlogByIdUsecase } from './get-blog-by-id.usecase.js'
+
+// ❌ WRONG - Separate usecases directory
+import { getBlogByIdUsecase } from '../../usecases/get-blog-by-id.usecase.js'
+```
+
+## Handler Structure Pattern
+
+### Standard REST API Handler
+```typescript
+/**
+ * JSDoc description of the endpoint
+ * HTTP_METHOD /api/path
+ */
+export const _handler = schemaInputMethod(InputSchema).pipe(
+  E.flatMap(usecaseFunction),
+  E.flatMap(responseFunction),
+  E.tapError(E.logError),
+  E.catchTags({
+    ParseError: (error) => badRequestResponse(error.message),
+    NotFoundError: () => notFoundResponse(),
+    ConflictError: (error) => conflictResponse(error.message),
+  }),
+  E.orDie,
+  E.withSpan('handler-name'),
+)
+
+export const handler = _handler.pipe(
+  E.provide(RequiredStore.Default),
+  E.withSpan('handler-name-full'),
+  toHandler,
+)
+```
+
+### Handler with Co-located Usecase
+```typescript
+import { Effect as E } from 'effect'
+import { KeyDecryptor } from '../../lib/index.js'
+import { sendCustomMessageUsecase } from './send-custom-message.usecase.js'
+
+export const _handler = (event: CustomEmailSenderTriggerEvent) =>
+  E.gen(function* () {
+    yield* E.logInfo('Handler started', { /* context */ })
+    const result = yield* sendCustomMessageUsecase(event)
+    yield* E.logInfo('Handler completed successfully')
+    return result
+  }).pipe(
+    E.tapError(E.logError),
+    E.withSpan('handler-name'),
+    E.annotateLogs({ handler: 'handler-name' }),
+  )
+```
+
+## Package Structure
+
+### API Package Structure
+- **NO index.ts file needed** in API packages (src/index.ts)
+- API packages are deployment artifacts, not libraries
+- Handlers are entry points, not exports
+
+```
+packages/blog-api/
+├── src/
+│   ├── config.ts
+│   ├── lib/
+│   ├── stores/
+│   └── lambdas/
+│       ├── get-blog-by-id/
+│       │   ├── handler.ts
+│       │   ├── handler.test.ts
+│       │   ├── get-blog-by-id.usecase.ts
+│       │   └── get-blog-by-id.usecase.test.ts
+│       └── create-blog-post/
+│           ├── handler.ts
+│           ├── handler.test.ts
+│           ├── create-blog-post.usecase.ts
+│           └── create-blog-post.usecase.test.ts
+├── package.json
+└── tsconfig.json
+```
+
+## Configuration Access in Handlers
+
+### Environment Variables
+- **NEVER** access environment variables directly in handlers
+- **ALWAYS** use configuration from `config.ts` through services
+- Configuration is injected through Effect's dependency system
+
+```typescript
+// ❌ WRONG - Direct environment access
+const tableName = process.env.BLOG_TABLE
+
+// ✅ CORRECT - Configuration through services
+export const _handler = schemaInput(InputSchema).pipe(
+  E.flatMap(usecase), // usecase accesses config through stores
+  E.flatMap(okResponse),
+  // ...
+)
+
+// Services handle configuration
+export const handler = _handler.pipe(
+  E.provide(BlogStore.Default), // BlogStore uses config.ts
+  toHandler,
+)
+```
+
+## Input Validation Patterns
+
+### Path Parameters
+```typescript
+// Using predefined schema
+export const _handler = schemaPathParams(IdSchema).pipe(
+  E.flatMap(({ id }) => usecase(BlogPostId.make(id))),
+  // ... rest of handler
+)
+
+// Custom path schema
+const PathParamsSchema = Schema.Struct({
+  slug: Schema.String,
+  authorId: Schema.String,
+})
+
+export const _handler = schemaPathParams(PathParamsSchema).pipe(
+  E.flatMap(({ slug, authorId }) =>
+    usecase(Slug.make(slug), UserId.make(authorId))
+  ),
+  // ... rest of handler
+)
+```
+
+### Query Parameters
+```typescript
+export const _handler = schemaQueryParams(GetBlogPageInput).pipe(
+  E.flatMap(getBlogPageUsecase),
+  // ... rest of handler
+)
+
+// With error handling options
+export const _handler = schemaQueryParams(SearchParamsSchema, {
+  errors: 'all',
+}).pipe(
+  E.flatMap(searchUsecase),
+  // ... rest of handler
+)
+```
+
+### Request Body
+```typescript
+export const _handler = schemaBodyJson(CreateBlogPostInput).pipe(
+  E.flatMap(createBlogPostUsecase),
+  E.flatMap(createdResponse),
+  // ... rest of handler
+)
+```
+
+## Response Patterns
+
+### Success Responses
+```typescript
+// 200 OK with data
+E.flatMap(okResponse)
+
+// 201 Created with data
+E.flatMap(createdResponse)
+
+// 204 No Content (for void operations)
+E.asVoid,
+E.flatMap(okResponse)
+
+// 204 Deleted
+E.flatMap(deletedResponse)
+```
+
+### Error Response Mapping
+```typescript
+E.catchTags({
+  // 400 Bad Request
+  ParseError: (error) => badRequestResponse(error.message),
+
+  // 404 Not Found
+  NotFoundError: () => notFoundResponse(),
+  NotFoundError: (error) => notFoundResponse(error.message),
+
+  // 409 Conflict
+  ConflictError: (error) => conflictResponse(error.message),
+})
+```
+
+## Service Dependency Injection
+
+### Single Service
+```typescript
+export const handler = _handler.pipe(
+  E.provide(BlogStore.Default),
+  toHandler,
+)
+```
+
+### Multiple Services
+```typescript
+export const handler = _handler.pipe(
+  E.provide(BlogStore.Default),
+  E.provide(SearchStore.Default),
+  E.provide(AlgoliaLive),
+  toHandler,
+)
+```
+
+## Error Handling Patterns
+
+### Standard Error Handling
+```typescript
+export const _handler = schemaInput(InputSchema).pipe(
+  E.flatMap(usecase),
+  E.flatMap(okResponse),
+  E.tapError(E.logError),           // Always log errors
+  E.catchTags({                     // Map domain errors to HTTP responses
+    ParseError: (error) => badRequestResponse(error.message),
+    NotFoundError: () => notFoundResponse(),
+  }),
+  E.orDie,                          // Crash on unhandled errors
+  E.withSpan('handler-name'),       // Add tracing span
+)
+```

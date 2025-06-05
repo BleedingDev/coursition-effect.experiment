@@ -1,0 +1,266 @@
+---
+description: Comprehensive Effect-TS service architecture patterns covering stores, usecases, handlers, and testing for building scalable applications
+globs:
+alwaysApply: false
+---
+# Effect-TS Service Architecture Patterns and Best Practices
+
+## 1. Import Patterns
+
+### Always Use Relative Paths for Internal Imports
+- **CRITICAL**: Never use `src/` aliases for internal imports
+- Always use relative paths like `../../stores/blog/blog-store.js`
+- Use package imports only for external dependencies
+
+```typescript
+// ✅ CORRECT - Relative paths for internal imports
+import { BlogStore } from '../../stores/blog/blog-store.js'
+import { createBlogPostUsecase } from '../create/usecase.js'
+
+// ✅ CORRECT - Package imports for external dependencies
+import { BlogPost, BlogPostId } from '@t6c/blog-domain'
+import { Effect as E, Schema as S } from 'effect'
+
+// ❌ WRONG - Never use src/ aliases
+import { BlogStore } from 'src/stores/blog/blog-store.js'
+```
+
+## 2. Store Layer (Data Access)
+
+### Service Class Structure
+```typescript
+export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
+  dependencies: [DynamoDBService, ConfigService],
+  effect: E.gen(function* () {
+    const dynamodb = yield* DynamoDBService
+    const config = yield* ConfigService
+
+    return {
+      create: (blogPost: BlogPost) => E.gen(function* () {
+        // Implementation
+      }),
+      getById: (id: BlogPostId) => E.gen(function* () {
+        // Implementation
+      }),
+    }
+  }),
+}) {}
+```
+
+### Store Responsibilities
+- ✅ Data persistence and retrieval only
+- ✅ Schema encoding/decoding
+- ✅ External service integration (DynamoDB, Algolia, S3)
+- ✅ Return raw data without business logic processing
+- ❌ No pagination calculations or business logic
+
+## 3. Usecase Layer (Business Logic)
+
+### Usecase Structure with Observability
+```typescript
+/**
+ * Creates a new blog post with default values
+ * @param input - Blog post creation input
+ * @returns Created blog post with generated ID and timestamps
+ */
+export const createBlogPostUsecase = (input: CreateBlogPostInput) =>
+  E.gen(function* () {
+    // Start logging - concise format
+    yield* E.logInfo('createBlogPostUsecase started', JSON.stringify(input))
+
+    const blogStore = yield* BlogStore
+
+    // Annotate key data points for tracing
+    const blogPostData = BlogPost.make({
+      id: BlogPostId.make(randomUUID()),
+      ...input,
+      // ... other fields
+    })
+    yield* E.annotateCurrentSpan('blogPostData', JSON.stringify(blogPostData))
+
+    const createdBlogPost = yield* blogStore.create(blogPostData)
+    yield* E.annotateCurrentSpan('createdBlogPost', JSON.stringify(createdBlogPost))
+
+    // Completion logging - concise format
+    yield* E.logInfo('createBlogPostUsecase completed successfully', JSON.stringify(createdBlogPost))
+
+    return createdBlogPost
+  }).pipe(
+    E.tapError((error) =>
+      E.logError('createBlogPostUsecase failed', JSON.stringify({ error, input }))
+    ),
+    E.withSpan('createBlogPostUsecase', { attributes: { input } })
+  )
+```
+
+### Logging and Observability Patterns
+
+#### ✅ CORRECT - Concise Logging Format
+```typescript
+// Start logging
+yield* E.logInfo('usecaseName started', JSON.stringify(input))
+
+// Span annotations for key data
+yield* E.annotateCurrentSpan('dataName', JSON.stringify(data))
+
+// Completion logging
+yield* E.logInfo('usecaseName completed successfully', JSON.stringify(result))
+
+// Error logging
+E.tapError((error) =>
+  E.logError('usecaseName failed', JSON.stringify({ error, input }))
+)
+```
+
+#### ❌ WRONG - Verbose Object Format
+```typescript
+// Don't use verbose object format with timestamps
+yield* E.logInfo('usecaseName started', {
+  input: JSON.stringify(input),
+  timestamp: new Date().toISOString(),
+})
+```
+
+### Usecase Responsibilities
+- ✅ Business logic and orchestration
+- ✅ Pagination calculations and data transformation
+- ✅ Concise logging with JSON.stringify for structured data
+- ✅ Span annotations for key data points using E.annotateCurrentSpan
+- ✅ Detailed JSDoc documentation
+- ✅ Error context and handling
+- ❌ No direct database or external service calls
+- ❌ No verbose logging with timestamp objects
+
+## 4. Handler Layer (HTTP Interface)
+
+### Handler Structure
+```typescript
+export const _handler = schemaBody(CreateBlogPostInput).pipe(
+  E.flatMap(createBlogPostUsecase),
+  E.flatMap(createdResponse),
+  E.catchTags({
+    ParseError: (error) => badRequestResponse(error.message),
+    ConflictError: () => conflictResponse('Blog post already exists'),
+  }),
+  E.orDie,
+  E.withSpan('create-blog-post'),
+)
+
+export const handler = _handler.pipe(
+  E.provide(BlogStore.Default),
+  E.withSpan('create-blog-post-handler'),
+  toHandler,
+)
+```
+
+### Handler Responsibilities
+- ✅ Input validation using schemas
+- ✅ Usecase delegation
+- ✅ Response formatting
+- ✅ Error mapping to HTTP responses
+- ✅ Service dependency injection
+
+## 5. Testing Patterns
+
+### Store Testing
+```typescript
+import { describe, expect, it } from '@effect/vitest'
+
+describe('BlogStore', () => {
+  it('should create a blog post', async () => {
+    const result = await BlogStore.pipe(
+      E.flatMap((store) => store.create(mockBlogPost1)),
+      E.provide(
+        BlogStore.makeTestService({
+          create: () => E.succeed(mockBlogPost1),
+        }),
+      ),
+      E.provide(MockConfigLayer),
+      E.runPromise,
+    )
+    expect(result.title).toEqual(mockBlogPost1.title)
+  })
+
+  it.effect('should handle errors with Effect test', () =>
+    E.gen(function* () {
+      const store = yield* BlogStore
+      const result = yield* E.exit(store.getById('non-existent'))
+      expect(Exit.isFailure(result)).toBe(true)
+    }).pipe(
+      E.provide(BlogStore.makeTestService({
+        getById: () => new NotFoundError({ resource: 'BlogPost', id: 'non-existent' })
+      }))
+    )
+  )
+})
+```
+
+### Usecase Testing
+```typescript
+it.effect('should create blog post with proper logging', () =>
+  E.gen(function* () {
+    const result = yield* createBlogPostUsecase(mockInput)
+    expect(result.id).toBeDefined()
+    expect(result.authorId).toBe(mockInput.authorId)
+  }).pipe(
+    E.provide(BlogStore.makeTestService({
+      create: () => E.succeed(mockBlogPost1)
+    }))
+  )
+)
+```
+
+## 6. Error Handling
+
+### Tagged Errors
+```typescript
+export class BlogPostNotFoundError extends Data.TaggedError('BlogPostNotFoundError')<{
+  readonly id: string
+}> {}
+
+export class BlogPostConflictError extends Data.TaggedError('BlogPostConflictError')<{
+  readonly slug: string
+}> {}
+```
+
+### Error Handling in Layers
+```typescript
+// Store: Convert external errors to domain errors
+const result = yield* dynamodb.get(params).pipe(
+  E.catchTag('ItemNotFound', () =>
+    new BlogPostNotFoundError({ id })
+  )
+)
+
+// Usecase: Add context and logging
+const blogPost = yield* blogStore.getById(id).pipe(
+  E.tapError((error) =>
+    E.logError('Failed to retrieve blog post', JSON.stringify({ error, id }))
+  )
+)
+
+// Handler: Map to HTTP responses
+E.catchTags({
+  BlogPostNotFoundError: () => notFoundResponse('Blog post not found'),
+  BlogPostConflictError: () => conflictResponse('Blog post already exists'),
+})
+```
+
+## 7. Architecture Principles
+
+### Separation of Concerns
+- **Stores**: Data access and external service integration
+- **Usecases**: Business logic, validation, and orchestration
+- **Handlers**: HTTP interface and response formatting
+
+### Dependency Flow
+- Handlers depend on Usecases
+- Usecases depend on Stores
+- Stores depend on external services (DynamoDB, Algolia, etc.)
+- Never skip layers or create circular dependencies
+
+### Error Propagation
+- Use tagged errors for type-safe error handling
+- Convert external errors to domain errors at store boundaries
+- Add context and logging at usecase level
+- Map to appropriate HTTP responses at handler level
