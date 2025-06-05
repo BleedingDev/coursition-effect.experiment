@@ -26,3 +26,4 @@ catalogs:
   # Types and TypeScript compiler
   types:
     "typescript": ^5.8.3
+    "ts-patch": ^3.3.0
