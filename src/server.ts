@@ -8,7 +8,7 @@ import {
 } from '@effect/platform'
 import { BunHttpServer, BunRuntime } from '@effect/platform-bun'
 import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
-import { Effect, Layer } from 'effect'
+import { Effect as E, Layer } from 'effect'
 import { api } from './api'
 import { envVars } from './config'
 import { getJobByIdHandler } from './handlers/jobs/get-job-by-id.handler'
@@ -32,10 +32,10 @@ const mediaGroupImplementation = HttpApiBuilder.group(
 const ApiImplementation = HttpApiBuilder.api(api).pipe(
   Layer.provide(mediaGroupImplementation),
   Layer.provide(JobsStore.Default),
-  Layer.provide(MediaStore.Default),
+  Layer.provide(Layer.succeed(MediaStore, MediaStore.Deepgram)),
 )
 
-const ServerLayer = Effect.gen(function* () {
+const ServerLayer = E.gen(function* () {
   const port = yield* envVars.PORT
 
   return Layer.mergeAll(

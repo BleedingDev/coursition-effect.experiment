@@ -3,7 +3,7 @@ import { Schema } from 'effect'
 
 const ParseMediaFileRequest = HttpApiSchema.Multipart(
   Schema.Struct({
-    file: Multipart.FilesSchema,
+    file: Multipart.FileSchema,
   }),
 )
 

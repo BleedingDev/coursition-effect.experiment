@@ -1,8 +1,19 @@
 import { describe, expect, it } from '@effect/vitest'
 import { Effect as E } from 'effect'
-import { MockConfigLayer } from '../../config'
 import { MediaStore } from '../../stores/media/media.store'
+import { makeTestLayer } from '../../test-utils'
 import { parseMediaUsecase } from './parse-media.usecase'
+
+const MediaStoreTestLayer = makeTestLayer(MediaStore)({
+  parseMedia: () =>
+    E.succeed({
+      json: [
+        { start: 0, end: 5000, text: 'Hello world' },
+        { start: 5000, end: 10000, text: 'This is a test' },
+        { start: 10000, end: 15000, text: 'Sub parsing complete' },
+      ],
+    }),
+})
 
 describe('parseMediaUsecase', () => {
   it.effect('should parse media from URL', () =>
@@ -17,43 +28,6 @@ describe('parseMediaUsecase', () => {
       expect(result.json[0]?.text).toBe('Hello world')
       expect(result.json[1]?.start).toBe(5000)
       expect(result.json[2]?.end).toBe(15000)
-    }).pipe(
-      E.provide(
-        MediaStore.makeTestService({
-          parseMedia: () =>
-            E.succeed({
-              json: [
-                { start: 0, end: 5000, text: 'Hello world' },
-                { start: 5000, end: 10000, text: 'This is a test' },
-                { start: 10000, end: 15000, text: 'Subtitle parsing complete' },
-              ],
-            }),
-        }),
-      ),
-      E.provide(MockConfigLayer),
-    ),
-  )
-
-  it.effect('should work with custom test service', () =>
-    E.gen(function* () {
-      const request = {
-        url: 'https://example.com/test.mp4',
-        language: 'es',
-      }
-      const result = yield* parseMediaUsecase(request)
-
-      expect(result.json).toHaveLength(1)
-      expect(result.json[0]?.text).toBe('Hola mundo')
-    }).pipe(
-      E.provide(
-        MediaStore.makeTestService({
-          parseMedia: () =>
-            E.succeed({
-              json: [{ start: 0, end: 3000, text: 'Hola mundo' }],
-            }),
-        }),
-      ),
-      E.provide(MockConfigLayer),
-    ),
+    }).pipe(E.provide(MediaStoreTestLayer)),
   )
 })

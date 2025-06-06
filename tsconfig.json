@@ -38,7 +38,7 @@
     "plugins": [
       {
         "name": "@effect/language-service",
-        "transform": "@effect/language-service/transform",
+        "transform": "@effect/language-service/transform"
       }
     ]
   },

@@ -246,7 +246,45 @@ E.catchTags({
 })
 ```
 
-## 7. Architecture Principles
+## 7. Service Definition
+
+### Always define service with default implementation as `E.Service`
+- There is one main implementation of a service
+- There is only one implementation of a service
+
+#### ✅ CORRECT - Service with default implementation as `E.Service`
+```typescript
+export class BlogStore extends E.Service<BlogStore>()('BlogStore', {
+  dependencies: [DynamoDBService, ConfigService],
+  effect: E.gen(...)
+}){}
+```
+
+### Always define service with multiple implementations as `Context.Tag`
+- There are multiple implementations of a service
+- There is no clear default implementation
+
+#### ✅ CORRECT - Service with multiple implementations as `Context.Tag`
+```typescript
+export class MediaStore extends Context.Tag('MediaStore')<
+  MediaStore,
+  {/* required methods interface */}
+>() {
+  static Deepgram = MediaStore.of({/* required methods */})
+
+  static Gemini = MediaStore.of({/* required methods */})
+
+  static makeTestService = (
+    mockImplementation: Partial<Parameters<typeof MediaStore.of>[0]>,
+  ) =>
+    MediaStore.of({
+      /* required methods */
+      ...mockImplementation,
+    })
+}
+```
+
+## 8. Architecture Principles
 
 ### Separation of Concerns
 - **Stores**: Data access and external service integration
