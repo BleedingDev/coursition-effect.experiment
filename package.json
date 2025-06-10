@@ -23,6 +23,8 @@
     "@effect/opentelemetry": "catalog:effect",
     "@effect/platform": "catalog:effect",
     "@effect/platform-bun": "catalog:effect",
+    "@restatedev/restate-sdk": "^1.6.0",
+    "@restatedev/restate-sdk-clients": "^1.6.0",
     "effect": "catalog:effect"
   },
   "packageManager": "pnpm@10.7.0",

@@ -1,22 +1,21 @@
-import { DevTools } from '@effect/experimental'
+import {DevTools} from '@effect/experimental'
 import * as Otlp from '@effect/opentelemetry/Otlp'
-import {
-  HttpApiBuilder,
-  HttpApiScalar,
-  HttpMiddleware,
-  HttpServer,
-} from '@effect/platform'
-import { BunHttpServer, BunRuntime } from '@effect/platform-bun'
+import {HttpApiBuilder, HttpApiScalar, HttpMiddleware, HttpServer,} from '@effect/platform'
+import {BunHttpServer, BunRuntime} from '@effect/platform-bun'
 import * as FetchHttpClient from '@effect/platform/FetchHttpClient'
-import { Effect as E, Layer } from 'effect'
-import { api } from './api'
-import { envVars } from './config'
-import { getJobByIdHandler } from './handlers/jobs/get-job-by-id.handler'
-import { getJobResultHandler } from './handlers/jobs/get-job-result.handler'
-import { getJobsHandler } from './handlers/jobs/get-jobs.handler'
-import { parseMediaHandler } from './handlers/media/parse-media.handler'
-import { JobsStore } from './stores/jobs/jobs.store'
-import { MediaStore } from './stores/media/media.store'
+import {Effect as E, Layer} from 'effect'
+import {api} from './api'
+import {envVars} from './config'
+import {getJobByIdHandler} from './handlers/jobs/get-job-by-id.handler'
+import {getJobResultHandler} from './handlers/jobs/get-job-result.handler'
+import {getJobsHandler} from './handlers/jobs/get-jobs.handler'
+import {parseMediaHandler} from './handlers/media/parse-media.handler'
+import {JobsStore} from './stores/jobs/jobs.store'
+import {MediaStore} from './stores/media/media.store'
+import {WorkflowStore} from "./stores/workflow/workflowStore.ts";
+import {processVideoHandler} from "./handlers/workflow/video-processing.ts";
+import * as restate from "@restatedev/restate-sdk";
+import {processVideoDefinition} from "./usecases/workflow/process-video.usecase.ts";
 
 const mediaGroupImplementation = HttpApiBuilder.group(
   api,
@@ -24,15 +23,23 @@ const mediaGroupImplementation = HttpApiBuilder.group(
   (handlers) =>
     handlers
       .handle('parseMedia', ({ payload }) => parseMediaHandler(payload))
+      .handle('processVideo', (request) => processVideoHandler(request))
       .handle('getJobs', () => getJobsHandler())
       .handle('getJob', ({ path: { id } }) => getJobByIdHandler(id))
       .handle('getJobResult', ({ path: { id } }) => getJobResultHandler(id)),
 )
 
+// Bind and start the server
+restate
+  .endpoint()
+  .bind(processVideoDefinition)
+  .listen(9080)
+
 const ApiImplementation = HttpApiBuilder.api(api).pipe(
   Layer.provide(mediaGroupImplementation),
   Layer.provide(JobsStore.Default),
   Layer.provide(Layer.succeed(MediaStore, MediaStore.Deepgram)),
+  Layer.provide(Layer.succeed(WorkflowStore, WorkflowStore.RestateStore)),
 )
 
 const ServerLayer = E.gen(function* () {
