@@ -8,11 +8,17 @@ import {
 } from './domain/jobs/jobs.schema'
 import { MediaEmpty } from './domain/media/media.errors'
 import { MediaResponse, UnifiedMediaRequest } from './domain/media/media.schema'
+import {ProcessVideoRequest, ProcessVideoResponse} from "./domain/workflow/worflow.schema.ts";
+import {WorkflowError} from "./domain/workflow/worflow.errors.ts";
 
 const parseMedia = HttpApiEndpoint.post('parseMedia', '/parse')
   .setPayload(UnifiedMediaRequest)
   .addSuccess(MediaResponse)
   .addError(MediaEmpty, { status: 422 })
+const processVideo = HttpApiEndpoint.post('processVideo', '/process')
+  .setPayload(ProcessVideoRequest)
+  .addSuccess(ProcessVideoResponse)
+  .addError(WorkflowError, { status: 422 })
 const jobs = HttpApiEndpoint.get('getJobs', '/jobs').addSuccess(JobsResponse)
 const job = HttpApiEndpoint.get('getJob')`/job/${idParam}`
   .addSuccess(JobResponse)
@@ -24,6 +30,7 @@ const jobResult = HttpApiEndpoint.get('getJobResult')`/job/${idParam}/result`
 
 const parseGroup = HttpApiGroup.make('media')
   .add(parseMedia)
+  .add(processVideo)
   .add(jobs)
   .add(job)
   .add(jobResult)
