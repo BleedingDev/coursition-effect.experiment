@@ -71,6 +71,9 @@ importers:
       '@restatedev/restate-sdk':
         specifier: ^1.6.0
         version: 1.6.0
+      '@restatedev/restate-sdk-clients':
+        specifier: ^1.6.0
+        version: 1.6.0
       effect:
         specifier: catalog:effect
         version: 3.16.3
@@ -518,6 +521,10 @@ packages:
 
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
+
+  '@restatedev/restate-sdk-clients@1.6.0':
+    resolution: {integrity: sha512-od9GUFMekoPLIBdCET9Tr1CEY5QqBKXJYG9RWQ7LyqI/1DPUbRrFITWR6cDuTCipynb0lhFvYARDIqkCWd+JlQ==}
+    engines: {node: '>= 18.13'}
 
   '@restatedev/restate-sdk-core@1.6.0':
     resolution: {integrity: sha512-e+5zpkdpLQUcKte5SQCBXCBtW3IITkFiYqfoHTgshCw0e1WFXxkd12ki6qwO3fac8zkN3d9sF8yGISTMjo5hOQ==}
@@ -1353,6 +1360,10 @@ snapshots:
       '@parcel/watcher-win32-x64': 2.5.1
 
   '@polka/url@1.0.0-next.29': {}
+
+  '@restatedev/restate-sdk-clients@1.6.0':
+    dependencies:
+      '@restatedev/restate-sdk-core': 1.6.0
 
   '@restatedev/restate-sdk-core@1.6.0': {}
 

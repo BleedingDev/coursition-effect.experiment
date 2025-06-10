@@ -13,8 +13,9 @@ import {parseMediaHandler} from './handlers/media/parse-media.handler'
 import {JobsStore} from './stores/jobs/jobs.store'
 import {MediaStore} from './stores/media/media.store'
 import {WorkflowStore} from "./stores/workflow/workflowStore.ts";
-import {greeterWorkflow, processVideoHandler} from "./handlers/workflow/video-processing.ts";
+import {processVideoHandler} from "./handlers/workflow/video-processing.ts";
 import * as restate from "@restatedev/restate-sdk";
+import {processVideoDefinition} from "./usecases/workflow/process-video.usecase.ts";
 
 const mediaGroupImplementation = HttpApiBuilder.group(
   api,
@@ -31,7 +32,7 @@ const mediaGroupImplementation = HttpApiBuilder.group(
 // Bind and start the server
 restate
   .endpoint()
-  .bind(greeterWorkflow)
+  .bind(processVideoDefinition)
   .listen(9080)
 
 const ApiImplementation = HttpApiBuilder.api(api).pipe(

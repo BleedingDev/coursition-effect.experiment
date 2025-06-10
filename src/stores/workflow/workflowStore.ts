@@ -1,27 +1,28 @@
 import {Context, Effect as E, type Schema} from 'effect'
-import {ProcessVideoRequest, ProcessVideoResponse} from "../../domain/workflow/worflow.schema.ts";
+import {ProcessVideoResponse, StartProcessRequest, StartProcessResponse} from "../../domain/workflow/worflow.schema.ts";
 import {WorkflowError} from "../../domain/workflow/worflow.errors.ts";
+import * as clients from "@restatedev/restate-sdk-clients";
 
-type ProcessVideoRequestType = Schema.Schema.Type<typeof ProcessVideoRequest>
+type StartProcessRequestType = Schema.Schema.Type<typeof StartProcessRequest>
 
 export class WorkflowStore extends Context.Tag('WorkflowStore')<
   WorkflowStore,
   {
-    readonly processVideo: (
-      request: ProcessVideoRequestType,
-    ) => E.Effect<Schema.Schema.Type<typeof ProcessVideoResponse>, WorkflowError>
+    readonly startPropcess: (
+      request: StartProcessRequestType,
+    ) => E.Effect<Schema.Schema.Type<typeof StartProcessResponse>, WorkflowError>
   }
 >() {
   static RestateStore = WorkflowStore.of({
-    processVideo: E.fn('process-video')(function* (
-      request: ProcessVideoRequestType,
+    startPropcess: E.fn('start-process')(function* (
+      request: StartProcessRequestType,
     ) {
       
-      const response = fetch('http://localhost:9080/VideoProcessor/processVideo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request)
-      })
+      //TODO: Base URL from ENV param + solve auth
+      const rs = clients.connect({ url: "http://localhost:8080" });
+      
+      const response =  rs
+        .serviceClient(request.processDefinition).process(request.props)
       
       return ProcessVideoResponse.make({
         response: response,
